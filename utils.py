@@ -6,13 +6,13 @@ from langdetect import detect_langs
 stop = stopwords.words('english')
 from nltk.tokenize import RegexpTokenizer
 toker = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
-
+import sklearn
 
 import sys
 import utils
 import logging
 
-logging.basicConfig(stream=sys.stdout, level=logging.ERROR, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
 
@@ -57,6 +57,8 @@ class Utils:
 		import operator
 		print max(self.locationCount.iteritems(), key=operator.itemgetter(1))[0]
 
+def kullback_leibner_divergence(labels_true, labels_pred, contingency=None):
+	return sklearn.metrics.mutual_info_score(labels_true, labels_pred)
 
 def loadAbbreviations():
 	#http://www.webopedia.com/quick_ref/textmessageabbreviations.asp
@@ -326,25 +328,28 @@ def filter(w):
 	#perhaps use metaphones in the future? Using speech sound: "inb4" to "inbefore"
 	#perhaps normalize using linux dictionary Aspell with edit distance ftp:#ftp.gnu.org/gnu/aspell/dict/0index.html
 
-def getBagOfwords(tweets):
-	from langdetect import detect_langs, detect
+def filterTweet(tweet):
+	tweet = tweet.split()
+	filtered_tweet = []
+	for word in tweet:
+		w = utils.filter(word)
+		if w is True:
+			continue
+		else:
+			filtered_tweet.append(w)
+	return filtered_tweet
 
+
+def getBagOfwords(tweets):
 	bow = set()
-	for words in tweets:
-		tweet = " ".join(words)
+	for tweet in tweets:
 		if len(tweet) == 0:
+			logger.info("Empty tweet: %s", tweet)
 			continue
 
-		logger.info("Start to filter tweet: %s", tweet)
-
-		if detect(" ".join(words)) == "nl":
-			for w in words:
-				if filter(w) is not True:
-					bow.add(w)
-
-
-		else:
-			logger.info("Tweet removed, because it not Dutch")
+		for w in tweet:
+			if filter(w) is not True:
+				bow.add(w)
 
 	bow2 = set()
 
@@ -363,7 +368,8 @@ def main():
 	#utils.inferLocation(utils.user)
 	#abbreviations = utils.loadAbbreviations()
 	fname = '/home/robert/data/2015123101/'
-	loadAllData(fname, filter=True, save=True)
+	tweets = loadAllData(fname, filter=True, save=True)
+	getBagOfwords(tweets)
 
 	#print abbreviations
 

@@ -5,6 +5,7 @@ import sys
 import logging
 
 
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 #main.logger.setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,6 +63,16 @@ def main():
 		pickle.dump( data, open( "data.p", "wb" ) )
 	model = w2v.load_word2vec_format("word2vec_twitter.bin", binary=True)
 
+def testModel():
+	import utils
+	tweet = 'Zo krijgen we dat businessmodel voor die kindercrèche wel rond, me dunkt.. '
+	#tweet = tweet.encode('utf-8')
+	tweet = utils.filterTweet(tweet)
+	model = Word2vec.loadModel('/home/robert/data/word2vecModels/20151231.bin')
+	similar = model.most_similar(tweet)
+	logger.info('Most similar words for: %s are %s', tweet, similar)
+
+
 if __name__ == "__main__":
 	#main()
-	exit()
+	testModel()
