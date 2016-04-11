@@ -29,7 +29,7 @@ class Utils:
 	def __init__(self, username):
 		import ConfigParser
 		config = ConfigParser.ConfigParser()
-		config.read('config.cfg')
+		config.read('resources/config.cfg')
 		self.consumer_key = config.get('key', 'consumer_key')
 		self.consumer_secret = config.get('key', 'consumer_secret')
 		self.access_token = config.get('token', 'access_token')
@@ -42,21 +42,45 @@ class Utils:
 		print "Location of user: ", self.user.location
 		print "Follower count of user: ", self.user.followers_count
 
+
+	def getCoordinate(self, user):
+		data = self.api.get_user(user)
+		if data['geo_enabled']:
+			try:
+				return data.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
+			except AttributeError:
+				pass
+			except TypeError:
+				pass
+
+
+
 	#infer location of a tweet which does not have geo-location data by looking at befriended users
 	def inferLocation(self, user):
-		for friend in user.friends():
+		import json
+		for friend in user.friends()[0:99]:
+
 			try:
 				location = toker.tokenize(self.api.get_user(friend.screen_name).location)[0]
+				print location
+
 			except IndexError:
 				continue
+
 			if location not in stop:
 				if location in self.locationCount.keys():
 					self.locationCount[location] = self.locationCount[location] + 1
 				else:
 					self.locationCount[location] = 1
 		import operator
-		print max(self.locationCount.iteritems(), key=operator.itemgetter(1))[0]
+		return max(self.locationCount.iteritems(), key=operator.itemgetter(1))[0]
 
+#calculate distance using Vicenty's formula
+def distance(A, B):
+	from geopy.distance import vincenty
+	return vincenty(A, B).meters
+
+#calculate the similarity measure between two pdfs
 def kullback_leibner_divergence(labels_true, labels_pred, contingency=None):
 	return sklearn.metrics.mutual_info_score(labels_true, labels_pred)
 
@@ -111,19 +135,22 @@ def testData(file):
 			continue
 
 #load a file with tweets getting sentences in return with or without geolocation
-def loadData(fname, geo=False):
+def loadData(fname, geo=False, user=False):
 	#Don't forget to use the geolocation infer method from the article.
 	logger.info("Loading data with geo: %s", geo)
 	import json
 	tweets = []
 	sentence = []
 	geolocations = []
+	users = []
+
 	for line in open(fname, 'r'):
 		jsonData = json.loads(line)
 		if geo:
 			if jsonData['geo'] != None:
 				logger.info("Geolocation is: %s", jsonData['geo']['coordinates'])
 				geolocations.append(jsonData['geo']['coordinates'])
+				users.append(jsonData['user']['id'])
 				tweet = jsonData['text']
 				for t in tweet.split():
 					sentence.append(t)
@@ -138,7 +165,10 @@ def loadData(fname, geo=False):
 			tweets.append(sentence)
 			sentence = []
 
-	return tweets, geolocations
+	if geo:
+		return tweets, geolocations, users
+	else:
+		return tweets, geolocations
 
 def extractAllData(dir, value):
 	import os

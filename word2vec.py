@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+
+
 #NOT USED
 import gensim
 import word2vecReader
@@ -5,6 +10,7 @@ import sys
 import logging
 
 
+sys.setdefaultencoding()
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 #main.logger.setLevel(logging.INFO)
