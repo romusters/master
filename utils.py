@@ -12,7 +12,7 @@ import sys
 import utils
 import logging
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(stream=sys.stdout, level=logging.ERROR, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
 
@@ -37,11 +37,50 @@ class Utils:
 		self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
 		self.auth.set_access_token(self.access_token, self.access_token_secret)
 		self.api = tweepy.API(self.auth)
-		self.user = self.api.get_user(username)
-		print "Username: ", self.user.screen_name
-		print "Location of user: ", self.user.location
-		print "Follower count of user: ", self.user.followers_count
+		try:
+			self.user = self.api.get_user(username)
+		except tweepy.error.TweepError as e:
+			print e
+			pass
 
+		if self.user is not None:
+			print "Username: ", self.user.screen_name
+			print "Location of user: ", self.user.location
+			print "Follower count of user: ", self.user.followers_count
+
+
+	def getFriends(self, user):
+		#Method 1
+		#user = self.api.get_user(user, count=21)
+
+		#Method 2
+		#return self.api.followers_ids()
+
+		#Method 3
+		# followers = []
+		# for follower in tweepy.Cursor(self.api.followers).items():
+		# 	followers.append(follower)
+		# return followers
+
+		#Method 4
+		ids = []
+		for page in tweepy.Cursor(self.api.followers_ids, id=user).pages():
+			ids.extend(page)
+		print "Ids of friends are: ", ids
+		# screen_names = [user.screen_name for user in self.api.lookup_users(user_ids=ids)]
+		# print screen_names
+		friends = []
+		idx = 0
+		for id in ids:
+			friend = self.api.get_user(id)
+			friends.append(friend)
+			idx += 1
+			if idx > 148:
+				logger.info("sleep")
+				import time
+				time.sleep(15*60)
+				idx = 0
+		return friends
 
 	def getCoordinate(self, user):
 		data = self.api.get_user(user)
@@ -57,9 +96,8 @@ class Utils:
 
 	#infer location of a tweet which does not have geo-location data by looking at befriended users
 	def inferLocation(self, user):
-		import json
-		for friend in user.friends()[0:99]:
-
+		user = self.api.get_user(user)
+		for friend in user.friends():
 			try:
 				location = toker.tokenize(self.api.get_user(friend.screen_name).location)[0]
 				print location
@@ -148,7 +186,7 @@ def loadData(fname, geo=False, user=False):
 		jsonData = json.loads(line)
 		if geo:
 			if jsonData['geo'] != None:
-				logger.info("Geolocation is: %s", jsonData['geo']['coordinates'])
+				logger.debug("Geolocation is: %s", jsonData['geo']['coordinates'])
 				geolocations.append(jsonData['geo']['coordinates'])
 				users.append(jsonData['user']['id'])
 				tweet = jsonData['text']
