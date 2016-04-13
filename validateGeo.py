@@ -17,7 +17,8 @@ def test():
 
 
 def main():
-	time.sleep(60*15)
+	#time.sleep(60*15)
+
 	#Load data from a single day
 	#fname = "/home/robert/data/2015123101/20151231:01.out"
 	fname = "/home/robert/data/20151225to31/20151231:11.out"
@@ -30,6 +31,9 @@ def main():
 	#for 100 samples, validate if the inferred location is indeed the correct location
 	#samples are stored in the folder "results" under the filename: "geovalidate.ods".
 	for user in users:
+		if user in ["2207599764", "171536032"]:
+			print "skipping user: ", user
+			continue
 		f = open(results + str(user), 'w')
 
 		util = utils.Utils(user)
@@ -38,7 +42,8 @@ def main():
 			friends = util.getFriends(user)
 			f.write("Length of friends is:\n")
 			f.write(str(len(friends)) + '\n')
-
+			f.write("Friends ids are:\n")
+			f.write(str(friends) + '\n')
 			coordinates = []
 			for friend in friends:
 				if friend.__getstate__()['geo_enabled']:
