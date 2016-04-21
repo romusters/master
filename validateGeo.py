@@ -4,6 +4,10 @@ import requests.packages.urllib3
 import logging
 import sys
 import time
+import tweepy
+from requests.exceptions import Timeout, ConnectionError
+from requests.packages.urllib3.exceptions import ReadTimeoutError
+import ssl
 
 #disable ssl warnings
 requests.packages.urllib3.disable_warnings()
@@ -22,49 +26,101 @@ def main():
 	#Load data from a single day
 	#fname = "/home/robert/data/2015123101/20151231:01.out"
 	fname = "/home/robert/data/20151225to31/20151231:11.out"
+	fname = "/home/robert/data/20160401:10.out"
 	results = "/home/robert/data/geovalidate/"
 	#load data which has geolocation information
-	data = utils.loadData(fname, True, True)
-	data = data[0:100]
-	users = data[2]
+	tweets, coor, users = utils.loadData(fname, True, True)
+	data = users
+
+	import os
+	alreadyDone = os.listdir(results)
+	print alreadyDone
+
+	#latitude longitude
+	#Boundingbox for Dutch tweets
+	databb = []
+	for i in range(0, len(users)-1):
+		print coor[i]
+		if coor[i][0] < 50.621152:
+			continue
+		if coor[i][1] > 7.152100:
+			continue
+		if coor[i][0] > 53.562744:
+			continue
+		if coor[i][1] < 3.240967:
+			continue
+		databb.append(users[i])
+	users = databb
 
 	#for 100 samples, validate if the inferred location is indeed the correct location
 	#samples are stored in the folder "results" under the filename: "geovalidate.ods".
+	usersJustDone = set(alreadyDone)
+	usersTooLarge = ['1166383453', '108124138', '28219825', '219606376', '517477928', '20719533']
+	usersDone = ['171536032', '2207599764', '228842529', '371376582', '708766332', '198488640', '6360462', '212718435', '621069461', '1918391694','144110593', '1656089485', '1079527514'  ]
 	for user in users:
-		if user in ["2207599764", "171536032"]:
-			print "skipping user: ", user
+		if str(user) in usersDone:
+			print "User is already done: ", user
 			continue
+		if str(user) in usersTooLarge:
+			print "User has too many followers ", user
+			continue
+		if str(user) in usersJustDone:
+			print "User just done: ", user
+			continue
+		print user
+
 		f = open(results + str(user), 'w')
 
 		util = utils.Utils(user)
+
+
+
 		#if the user exists
 		if util.user is not None:
-			friends = util.getFriends(user)
+			friends, ids = util.getFriends(user)
+			if friends is False:
+				print "Too many friends"
+				continue
+
 			f.write("Length of friends is:\n")
 			f.write(str(len(friends)) + '\n')
 			f.write("Friends ids are:\n")
-			f.write(str(friends) + '\n')
+			f.write(str(ids) + '\n')
 			coordinates = []
-			for friend in friends:
-				if friend.__getstate__()['geo_enabled']:
-					logger.debug("Geo enabled")
-					try:
-						status = friend.__getstate__()['status']
-					except KeyError:
-						logger.debug("No status information.")
-						continue
+			#when the connection times out, do write the results!
+			try:
+				for friend in friends:
+					if friend.__getstate__()['geo_enabled']:
+						logger.debug("Geo enabled")
+						try:
+							status = friend.__getstate__()['status']
+						except KeyError:
+							logger.debug("No status information.")
+							continue
 
-					if status is not None:
-						if friend.__getstate__()['status'].__getstate__()['coordinates'] is not None:
-							coordinate = friend.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
-							if coordinate is not None:
-								coordinates.append(coordinate)
+						if status is not None:
+							if friend.__getstate__()['status'].__getstate__()['coordinates'] is not None:
+								coordinate = friend.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
+								print coordinate[0]
+								if coordinate is not None:
+									coordinates.append(coordinate)
+							else:
+								logger.debug("No coordinate information.")
 						else:
-							logger.debug("No coordinate information.")
+							logger.debug("No status information.")
 					else:
-						logger.debug("No status information.")
+						logger.debug("No geo information.")
+			except (Timeout, ssl.SSLError, ReadTimeoutError, ConnectionError, tweepy.TweepError):
+				print "Time out"
+				if coordinates is not None:
+					f.write("Amount of coordinates found:\n")
+					f.write(str(len(coordinates)) + '\n')
+					f.write("The coordinates are:\n" )
+					f.write(str(coordinates) + '\n')
 				else:
-					logger.debug("No geo information.")
+					logger.info("No coordinates found :(")
+				f.close()
+				continue
 
 			if coordinates is not None:
 				f.write("Amount of coordinates found:\n")
@@ -73,10 +129,9 @@ def main():
 				f.write(str(coordinates) + '\n')
 			else:
 				logger.info("No coordinates found :(")
-		f.close()
-	logger.info("Sleep")
-	time.sleep(60*15)
 
+		usersDone.append(user)
+		f.close()
 
 def inferEachUser(user):
 

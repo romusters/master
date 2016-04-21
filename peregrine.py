@@ -2,27 +2,19 @@ import utils
 import word2vec
 import logging
 import sys
+import gensim
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
-peregrine = False
-
 def main():
-    fname = '20151225to31.bin'
-    if peregrine:
-        tweets = utils.loadAllData('/data/s1774395/', filter=True, save=True)
-    else:
-        tweets = utils.loadAllData('/home/robert/data/20151225to31/', filter=True, save=True)
+	dname = '/data/s1774395/201201.tar.gz'
+	sentences = gensim.models.word2vec.LineSentence(dname, max_sentence_length=150)
+	model = gensim.models.word2vec.Word2Vec(sentences, size=100, window=5, min_count=5, workers=24)
+	fname = "/data/s1774395/gensimPeregrineModel.bin"
+	model.save(fname)
+	print model.most_similar(positive=['word'], negative=['ik'])
 
-    w2v = word2vec.Word2vec(fname)
-
-    word2vecModel = w2v.trainModel(tweets)
-
-    if peregrine:
-        w2v.saveModel(word2vecModel, '/data/s1774395/w2vModels/' + fname)
-    else:
-        w2v.saveModel(word2vecModel, '/home/robert/data/w2vModels/' + fname)
 
 if __name__ == "__main__":
 	main()

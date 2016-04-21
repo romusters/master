@@ -1,12 +1,5 @@
-import tweepy
-from langdetect.lang_detect_exception import LangDetectException
-import nltk
-from nltk.corpus import stopwords
-from langdetect import detect_langs
-stop = stopwords.words('english')
-from nltk.tokenize import RegexpTokenizer
-toker = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
-import sklearn
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import sys
 import utils
@@ -28,6 +21,7 @@ class Utils:
 
 	def __init__(self, username):
 		import ConfigParser
+		import tweepy
 		config = ConfigParser.ConfigParser()
 		config.read('resources/config.cfg')
 		self.consumer_key = config.get('key', 'consumer_key')
@@ -36,7 +30,7 @@ class Utils:
 		self.access_token_secret = config.get('token', 'access_token_secret')
 		self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
 		self.auth.set_access_token(self.access_token, self.access_token_secret)
-		self.api = tweepy.API(self.auth)
+		self.api = tweepy.API(self.auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, retry_count=10, timeout=9999999999)
 		try:
 			self.user = self.api.get_user(username)
 		except tweepy.error.TweepError as e:
@@ -50,6 +44,7 @@ class Utils:
 
 
 	def getFriends(self, user):
+		import tweepy
 		#Method 1
 		#user = self.api.get_user(user, count=21)
 
@@ -67,20 +62,24 @@ class Utils:
 		for page in tweepy.Cursor(self.api.followers_ids, id=user).pages():
 			ids.extend(page)
 		print "Ids of friends are: ", ids
+		if len(ids) > 100:
+			return False, False
 		# screen_names = [user.screen_name for user in self.api.lookup_users(user_ids=ids)]
 		# print screen_names
 		friends = []
 		idx = 0
+		idxCnt = 1
 		for id in ids:
 			friend = self.api.get_user(id)
 			friends.append(friend)
-			idx += 1
-			if idx > 148:
-				logger.info("sleep")
-				import time
-				time.sleep(15*60)
-				idx = 0
-		return friends
+			# idx += 1
+			# if idx > 148:
+			# 	print "sleep " + str(idxCnt*148) + " / " + str(len(ids))
+			# 	idxCnt += 1
+			# 	import time
+			# 	time.sleep(16*60)
+			# 	idx = 0
+		return friends, ids
 
 	def getCoordinate(self, user):
 		data = self.api.get_user(user)
@@ -96,6 +95,9 @@ class Utils:
 
 	#infer location of a tweet which does not have geo-location data by looking at befriended users
 	def inferLocation(self, user):
+		#import is put here because the package is not installed on cluster
+		from nltk.tokenize import RegexpTokenizer
+		toker = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
 		user = self.api.get_user(user)
 		for friend in user.friends():
 			try:
@@ -120,6 +122,7 @@ def distance(A, B):
 
 #calculate the similarity measure between two pdfs
 def kullback_leibner_divergence(labels_true, labels_pred, contingency=None):
+	import sklearn
 	return sklearn.metrics.mutual_info_score(labels_true, labels_pred)
 
 def loadAbbreviations():
@@ -146,6 +149,8 @@ def convertAbbreviation(abbreviations, word):
 		return None
 
 def detectLang(word):
+	from langdetect import detect_langs
+	from langdetect.lang_detect_exception import LangDetectException
 	try:
 		lang = detect_langs(word.decode('utf-8'))
 		logger.info("Token: %s with language %s", word, lang)
@@ -204,15 +209,20 @@ def loadData(fname, geo=False, user=False):
 			sentence = []
 
 	if geo:
-		return tweets, geolocations, users
+		return [tweets, geolocations, users]
 	else:
-		return tweets, geolocations
+		return [tweets, geolocations]
 
-def extractAllData(dir, value):
+def deleteZeroByteData(dir):
+	import os
+	os.system("find . -type f -size 0c -delete")
+
+def extractAllData(dir):
 	import os
 	import gzip
 	tweets = []
 	for file in os.listdir(dir):
+		print dir + file
 		if file.endswith(".gz"):
 			with gzip.open(dir + '/' + file, 'rb') as f:
 				file_content = f.read()
@@ -221,6 +231,84 @@ def extractAllData(dir, value):
 				outF.close()
 
 	return tweets
+
+#Remove username from line in textfiles
+def removeUsernameDeep():
+	import gzip
+	import os
+	topdir = os.listdir(dir)
+	topdir.sort()
+	for middir in topdir:
+		bottomdir = os.listdir(dir + middir)
+		bottomdir.sort()
+		for subdir in bottomdir:
+			files = os.listdir(dir + middir + "/" + subdir)
+			files.sort()
+			for file in files:
+				try:
+					fname = dir +  middir + "/" + subdir + "/" + file
+					print fname
+					f = gzip.open(fname, 'r')
+					g = open(fname + '.txt', 'w')
+					for line in f:
+						g.write(" ".join(line.split()[1:]) + "\n")
+					f.close()
+					g.close()
+					os.remove(fname)
+				except Exception, err:
+					import traceback
+					traceback.print_exc()
+
+def removeUsernameShallow(dir):
+	import os
+	import json
+	files = os.listdir(dir).sort()
+	outputfile = dir + "out.txt"
+
+	for file in files:
+		f = open(dir + file)
+		for line in f:
+			try:
+				tweet = json.loads(line)['text']
+			except KeyError:
+				logger.info("No text key in JSON for tweet: %s", tweet)
+				continue
+			except ValueError:
+				logger.info("No JSON object could be decoded for tweet: %s", tweet)
+				continue
+			g.write(" ".join(line.split()[1:]) + "\n")
+
+
+def getDates(dir):
+	import gzip
+	import os
+	import json
+
+
+	topdir = os.listdir(dir)
+	topdir.sort()
+	for middir in topdir:
+		bottomdir = os.listdir(dir + middir)
+		bottomdir.sort()
+		for subdir in bottomdir:
+			files = os.listdir(dir + middir + "/" + subdir)
+			files.sort()
+			for file in files:
+				try:
+					fname = dir +  middir + "/" + subdir + "/" + file
+					print fname
+					f = gzip.open(fname, 'r')
+					g = open(dir + "dates.txt", 'a')
+					for line in f:
+						date = json.loads(line)['created_at']
+						g.write(date + "\n")
+					f.close()
+					g.close()
+				except Exception, err:
+					import traceback
+					traceback.print_exc()
+
+
 
 def getSpecificData(dir, value):
 	import json
@@ -368,7 +456,10 @@ def checkDigit(word):
 	return False
 
 def filter(w):
+	from nltk.corpus import stopwords
+	import nltk.stem.snowball
 
+	stop = stopwords.words('english')
 	stemmer =  nltk.stem.snowball.DutchStemmer()
 	logger.debug("Start to check word: %s", w)
 	#filter stopwords
@@ -408,6 +499,7 @@ def filterTweet(tweet):
 	return filtered_tweet
 
 
+
 def getBagOfwords(tweets):
 	bow = set()
 	for tweet in tweets:
@@ -430,6 +522,53 @@ def getBagOfwords(tweets):
 	return bow
 
 
+def removeCharFromFilename(dir):
+	import os
+	for filename in os.listdir(dir):
+		print dir + filename
+		os.rename(dir + filename, dir + filename.replace(':', ''))
+
+def concatFiles(dir, outfile):
+	import os
+	topdir = os.listdir(dir)
+	topdir.sort()
+
+	for middir in topdir:
+		bottomdir = os.listdir(dir + middir)
+		bottomdir.sort()
+		for subdir in bottomdir:
+			files = os.listdir(dir + middir + "/" + subdir)
+			files.sort()
+			for file in files:
+				try:
+					fname = dir +  middir + "/" + subdir + "/" + file
+					print fname
+					with open(fname) as i:
+						o = open(outfile, 'a')
+						o.write(i.read())
+				except Exception, err:
+					import traceback
+					traceback.print_exc()
+
+def remove_username_shallow_from_textfiles(dir):
+	import os
+
+	files = os.listdir(dir)
+
+	for file in files:
+		outputfile = dir + file + ".noUsername"
+
+		f = open(dir + file, 'r')
+		g = open(outputfile, 'w')
+
+		for line in f:
+			g.write(" ".join(line.split()[1:]) + "\n")
+		f.close()
+		g.close()
+
+
+
+
 def main():
 	#username = 'romusters'
 	#utils = Utils(username)
@@ -442,5 +581,11 @@ def main():
 	#print abbreviations
 
 if __name__ == "__main__":
-	main()
+	#main()
+	dir = '/data/s1774395/text/'
+	concatFiles(dir, dir + "input.txt")
+	#extractAllData('/home/robert/8Gbuildup/03/')
+	#getDates('/media/robert/dataThesis/tweets/')
 
+	#removeCharFromFilename(dir)
+	#remove_username_shallow_from_textfiles(dir)

@@ -10,7 +10,7 @@ import sys
 import logging
 
 
-sys.setdefaultencoding()
+#sys.setdefaultencoding()
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 #main.logger.setLevel(logging.INFO)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 fname = ""
 class Word2vec:
 	fname = None
-	def __init__(self, fname):
+	def __init__(self, fname=None):
 		self.fname = fname
 
 	def loadModel(self, fname):
@@ -34,15 +34,17 @@ class Word2vec:
 		try:
 			if peregrine:
 				import os
-				poolSize = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
-				model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5, workers=poolSize)
+				# poolSize = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
+				model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5)#, workers=poolSize)
+				return model
 			else:
 				model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5, workers=4)
+				return model
 		except:
 			logger.error("W2v model could not be trained.")
 			import traceback
 			traceback.print_exc(file=sys.stdout)
-		return model
+
 
 	def saveModel(self, model, fname):
 		try:
@@ -56,18 +58,35 @@ class Word2vec:
 		return model.most_similar(positive=word)
 
 def main():
-	w2v = word2vecReader.Word2Vec()
-	data = None
-	try:
-		data = pickle.load(open( "data.p", "rb" ))
-	except IOError:
-		#perhaps check the whole json object for the value? So -text?
-		logger.info("No data available, start training...")
-		#or open data from the tweet-stream
-		data = utils.getSpecificTextData('/media/robert/dataThesis/tweets/Tekst/2010/12', value)
+	# utils.encodeTextToUTF8(dname)
+	dname = '/home/robert/data/201201.tar.gz'
+	sentences = gensim.models.word2vec.LineSentence(dname, max_sentence_length=150)
+	model = gensim.models.word2vec.Word2Vec(sentences, size=100, window=5, min_count=5, workers=4)
+	fname = "/home/robert/data/gensimLocalModel.bin"
+	print model.most_similar(positive=['word'], negative=['ik'])
+	model.save(fname)
+	# w2v = Word2vec()
+	# model = w2v.trainModel(sentences, False)
+	#
+	# mname = "/home/robert/data/gensimLocalModel.bin"
+	# w2v.saveModel(model, mname)
 
-		pickle.dump( data, open( "data.p", "wb" ) )
-	model = w2v.load_word2vec_format("word2vec_twitter.bin", binary=True)
+
+
+	# w2v = word2vecReader.Word2Vec()
+	#
+	#
+	# data = None
+	# try:
+	# 	data = pickle.load(open( "data.p", "rb" ))
+	# except IOError:
+	# 	#perhaps check the whole json object for the value? So -text?
+	# 	logger.info("No data available, start training...")
+	# 	#or open data from the tweet-stream
+	# 	data = utils.getSpecificTextData('/media/robert/dataThesis/tweets/Tekst/2010/12', value)
+	#
+	# 	pickle.dump( data, open( "data.p", "wb" ) )
+	# model = w2v.load_word2vec_format("word2vec_twitter.bin", binary=True)
 
 def testModel():
 	import utils
@@ -80,5 +99,5 @@ def testModel():
 
 
 if __name__ == "__main__":
-	#main()
-	testModel()
+	main()
+	#testModel()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-import gensim
+import gensimW2v
 import scipy
 
 import utils
