@@ -83,13 +83,13 @@ class Utils:
 
 	def getCoordinate(self, user):
 		data = self.api.get_user(user)
-		if data['geo_enabled']:
-			try:
-				return data.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
-			except AttributeError:
-				pass
-			except TypeError:
-				pass
+		# if data['geo_enabled']:
+		try:
+			return data.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
+		except AttributeError:
+			pass
+		except TypeError:
+			pass
 
 
 
@@ -586,6 +586,5 @@ if __name__ == "__main__":
 	concatFiles(dir, dir + "input.txt")
 	#extractAllData('/home/robert/8Gbuildup/03/')
 	#getDates('/media/robert/dataThesis/tweets/')
-
 	#removeCharFromFilename(dir)
 	#remove_username_shallow_from_textfiles(dir)

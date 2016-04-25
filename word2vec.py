@@ -90,14 +90,19 @@ def main():
 
 def testModel():
 	import utils
-	tweet = 'Zo krijgen we dat businessmodel voor die kindercrèche wel rond, me dunkt.. '
+	tweet = 'ik heb geen zin meer in Twitter'.split()
 	#tweet = tweet.encode('utf-8')
-	tweet = utils.filterTweet(tweet)
-	model = Word2vec.loadModel('/home/robert/data/word2vecModels/20151231.bin')
+	#tweet = utils.filterTweet(tweet)
+	#model = Word2vec.loadModel('/home/robert/data/word2vecModels/20151231.bin')
+
+	import gensim
+	model = gensim.models.Word2Vec.load('/media/robert/dataThesis/w2vModels/gensimLocalModel.bin')
+
 	similar = model.most_similar(tweet)
+
 	logger.info('Most similar words for: %s are %s', tweet, similar)
 
 
 if __name__ == "__main__":
-	main()
-	#testModel()
+	#main()
+	testModel()
