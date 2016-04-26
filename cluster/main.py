@@ -19,6 +19,7 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 import utils
 import math
+import matplotlib.pyplot as plt
 
 # Display progress logs on stdout
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -47,9 +48,42 @@ def cluster(dataset):
 
 	###############################################################################
 	# Do the actual clustering
+	ks = range(1, 10, 1)
+	indices = range(1, 10, 1)
+	errors = []
+	ref_errors = []
+	gaps = []
+	for k in ks:
+		km = KMeans(n_clusters=k)
+		km.fit(X)
+		km_inert = km.inertia_
+		print(km_inert)
+		errors.append(km.inertia_)
+
+		ref = []
+		for i in indices:
+			km = KMeans(n_clusters=k)
+			km.fit(X)
+			ref.append(km.inertia_)
+		ref_mean = np.mean(ref)
+		print(ref_mean)
+		ref_errors.append(ref_mean)
+		try:
+			gap = math.log(ref_mean - km_inert)
+			gaps.append(gap)
+			print("Gap: ", gap)
+
+		except:
+			gaps.append(0)
+			continue
+	print(gaps)
+	plt.plot(gaps)
+	plt.show()
+	sys.exit(0)
+
 	gap_statistic(X)
 
-	sys.exit(0)
+
 	k = 5
 	km = KMeans(n_clusters=5, init='k-means++', max_iter=100, n_init=1,
 					verbose=opts.verbose)

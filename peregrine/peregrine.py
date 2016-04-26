@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class DirOfPlainTextCorpus(object):
 	def __init__(self, fname):
-		self.dirname = fname
+		self.fname = fname
 
 	def __iter__(self):
 		text = open(self.fname).read()
