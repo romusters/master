@@ -117,7 +117,7 @@ def plot_dates():
 		for line in f:
 			date = dateutil.parser.parse(line)
 			if date.year == year:
-				day_number = 365 + (date.date() - last_day).days
+				day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
 				if day_number == old_day_number:
 					day_freqs[str(day_number)] += 1
 					pass
@@ -179,5 +179,5 @@ if __name__ == "__main__":
 	#plot_time(results_folder)
 	#plot_model_size(results_folder)
 	#plot_coordinates()
-	#plot_dates()
-	plot_dates_fixed(results_folder)
+	plot_dates()
+	#plot_dates_fixed(results_folder)

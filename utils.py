@@ -449,19 +449,26 @@ def metaphone(word):
 
 def checkDigit(word):
 	punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
-	word = word.encode('utf-8')
-	word = word.translate(None, punctuation)
-	if word.isdigit():
-		return True
-	return False
+	try:
+		word = word.encode('utf-8')
+		word = word.translate(None, punctuation)
+		if word.isdigit():
+			return True
+		return False
+	except UnicodeDecodeError:
+		print word
+		import traceback
+		traceback.print_exc()
+
 
 def filter(w):
 	from nltk.corpus import stopwords
 	import nltk.stem.snowball
 
-	stop = stopwords.words('english')
 	stemmer =  nltk.stem.snowball.DutchStemmer()
 	logger.debug("Start to check word: %s", w)
+	#is this correct? Teh decoding?
+	w = w.decode('utf-8')
 	#filter stopwords
 	if w in stopwords.words("dutch"):
 		logger.debug("Filter %s as stopword", w)
@@ -550,6 +557,22 @@ def concatFiles(dir, outfile):
 					import traceback
 					traceback.print_exc()
 
+
+def concat_files_shallow(dir, outputfile):
+	import os
+	files = os.listdir(dir)
+
+	g = open(outputfile, 'w')
+	for file in files:
+		print file
+		f = open(dir + file, 'r')
+
+		for line in f:
+			g.write(line)
+		f.close()
+	g.close()
+
+
 def remove_username_shallow_from_textfiles(dir):
 	import os
 
@@ -582,8 +605,10 @@ def main():
 
 if __name__ == "__main__":
 	#main()
-	dir = '/data/s1774395/text/'
-	concatFiles(dir, dir + "input.txt")
+
+	#dir = '/data/s1774395/text/'
+	dir = '/home/robert/master/cluster/data/'
+	concat_files_shallow(dir, dir + "input.txt")
 	#extractAllData('/home/robert/8Gbuildup/03/')
 	#getDates('/media/robert/dataThesis/tweets/')
 	#removeCharFromFilename(dir)
