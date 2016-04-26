@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #
 from __future__ import print_function
-
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -11,52 +10,18 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import Normalizer
 from sklearn import metrics
-
 from sklearn.cluster import KMeans, MiniBatchKMeans
-
 import logging
 from optparse import OptionParser
 import sys
 from time import time
-
 import numpy as np
-
 from sklearn.feature_extraction.text import CountVectorizer
 import utils
+import math
 
 # Display progress logs on stdout
-logging.basicConfig(level=logging.INFO,
-					format='%(asctime)s %(levelname)s %(message)s')
-
-# parse commandline arguments
-op = OptionParser()
-op.add_option("--lsa",
-			  dest="n_components", type="int",
-			  help="Preprocess documents with latent semantic analysis.")
-op.add_option("--no-minibatch",
-			  action="store_false", dest="minibatch", default=True,
-			  help="Use ordinary k-means algorithm (in batch mode).")
-op.add_option("--no-idf",
-			  action="store_false", dest="use_idf", default=True,
-			  help="Disable Inverse Document Frequency feature weighting.")
-op.add_option("--use-hashing",
-			  action="store_true", default=False,
-			  help="Use a hashing feature vectorizer")
-op.add_option("--n-features", type=int, default=10000,
-			  help="Maximum number of features (dimensions)"
-				   " to extract from text.")
-op.add_option("--verbose",
-			  action="store_true", dest="verbose", default=False,
-			  help="Print progress reports inside k-means algorithm.")
-
-print(__doc__)
-op.print_help()
-
-(opts, args) = op.parse_args()
-if len(args) > 0:
-	op.error("this script takes no arguments.")
-	sys.exit(1)
-
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 def get_data(dataset):
 	tweets = []
@@ -73,15 +38,12 @@ def get_data(dataset):
 def cluster(dataset):
 	tweets = get_data(dataset)
 
-
 	print("Extracting features from the training dataset using a sparse vectorizer")
 	t0 = time()
 	vectorizer = CountVectorizer(min_df=1, lowercase=False)
 	X = vectorizer.fit_transform(tweets)
 	print("done in %fs" % (time() - t0))
 	print("n_samples: %d, n_features: %d" % X.shape)
-
-
 
 	###############################################################################
 	# Do the actual clustering
@@ -97,10 +59,6 @@ def cluster(dataset):
 	km.fit(X)
 	print("done in %0.3fs" % (time() - t0))
 	print()
-
-
-
-
 
 	print("Top terms per cluster:")
 
@@ -120,26 +78,33 @@ def cluster(dataset):
 
 def iter_kmeans(X, n_clusters, num_iters=5):
 	rng =  range(1, num_iters + 1)
-	vals = []
+	vals = [0]*num_iters
+	print(vals)
 	for i in rng:
+		print(i)
 		k = KMeans(n_clusters=n_clusters, n_init=3)
 		k.fit(X)
 		print("Ref k: %s" % k.get_params()['n_clusters'])
-		vals[i] = k.inertia_
+		vals[i-1] = k.inertia_
+	print(vals)
 	return vals
 
 def gap_statistic(X, max_k=10):
 	gaps = range(1, max_k + 1)
 	for k in gaps:
-		km_act = KMeans(n_clusters=k, n_init=3)
+		km_act = KMeans(n_clusters=k)#, n_init=3)
 		km_act.fit(X)
 
 		# get ref dataset
 		#ref = df.apply(get_rand_data)
-		ref_inertia = iter_kmeans(X, n_clusters=k).mean()
-
-		gap = log(ref_inertia - km_act.inertia_)
-
+		refs = iter_kmeans(X, n_clusters=k)
+		ref_inertia = np.mean(refs)
+		print(ref_inertia)
+		print(km_act.inertia_)
+		try:
+			gap = math.log(ref_inertia - km_act.inertia_)
+		except ValueError:
+			gap = 0
 		print("Ref: %s   Act: %s  Gap: %s" % ( ref_inertia, km_act.inertia_, gap))
 		gaps[k] = gap
 
