@@ -133,6 +133,8 @@ def iterative_training():
 					logger.info("model copy error")
 
 def get_dates_freq(fname, year):
+
+	logger.info("Starting collecting dates")
 	import dateutil.parser
 	import sys
 	from datetime import date
@@ -144,11 +146,11 @@ def get_dates_freq(fname, year):
 
 	old_day_number = -1
 
-	print "opening file"
+	logger.info("opening file")
 	f = open(fname)
-	print "reading lines"
+	logger.info("reading lines")
 	lines = f.readlines()
-
+	logger.info("length lines%i", len(lines))
 	for line in lines:
 		print line
 		date = dateutil.parser.parse(line)
