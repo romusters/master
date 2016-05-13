@@ -143,21 +143,24 @@ def get_dates_freq(fname, year):
 		day_freqs[str(i)] = 0
 
 	old_day_number = -1
-	with open(fname) as f:
-		for line in f:
-			date = dateutil.parser.parse(line)
-			if date.year == year:
-				day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
-				if day_number == old_day_number:
-					day_freqs[str(day_number)] += 1
-					pass
-				else:
-					print day_number
-					old_day_number = day_number
-					day_freqs[str(day_number)] += 1
-			if date.year == year +1:
-				print day_freqs
-				sys.exit(0)
+	
+	f = open(fname)
+	lines = f.readlines()
+
+	for line in lines:
+		date = dateutil.parser.parse(line)
+		if date.year == year:
+			day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
+			if day_number == old_day_number:
+				day_freqs[str(day_number)] += 1
+				pass
+			else:
+				print day_number
+				old_day_number = day_number
+				day_freqs[str(day_number)] += 1
+		if date.year == year +1:
+			print day_freqs
+			sys.exit(0)
 
 	print day_freqs
 
