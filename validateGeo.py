@@ -21,7 +21,11 @@ def main():
 	#Load data from a single day
 	#fname = "/home/robert/data/2015123101/20151231:01.out"
 	fname = "/home/robert/data/20151225to31/20151231:11.out"
-	fname = "/home/robert/data/20160401:10.out"
+	#fname = "/home/robert/data/20160401:10.out"
+	#fname = "/home/robert/data/20160401:03.out"
+	#fname = "/home/robert/data/20151201:00.out"
+	fname = "/home/robert/data/20151031:16.out"
+
 	results = "/home/robert/data/geovalidate/"
 	#load data which has geolocation information
 	tweets, coor, users = utils.loadData(fname, True, True)

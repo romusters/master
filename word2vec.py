@@ -22,7 +22,7 @@ class Word2vec:
 	def __init__(self, fname=None):
 		self.fname = fname
 
-	def loadModel(self, fname):
+	def load_model(self, fname):
 		try:
 			return gensim.models.Word2Vec.load(fname)
 		except RuntimeError:
@@ -30,15 +30,15 @@ class Word2vec:
 			raise
 		#return model = gensim.models.Word2Vec.load_word2vec_format("word2vec_twitter.bin", binary=True)
 
-	def trainModel(self, sentences, peregrine):
+	def train_model(self, sentences, peregrine):
 		try:
 			if peregrine:
 				import os
 				# poolSize = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
-				model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5)#, workers=poolSize)
+				model = gensim.models.Word2Vec(sentences, size=10000, window=5, min_count=5, workers=24)#, workers=poolSize)
 				return model
 			else:
-				model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5, workers=4)
+				model = gensim.models.Word2Vec(sentences, size=10000, window=5, min_count=5, workers=4)
 				return model
 		except:
 			logger.error("W2v model could not be trained.")
@@ -46,7 +46,7 @@ class Word2vec:
 			traceback.print_exc(file=sys.stdout)
 
 
-	def saveModel(self, model, fname):
+	def save_model(self, model, fname):
 		try:
 			model.save(fname)
 		except:
@@ -103,6 +103,10 @@ def testModel():
 	logger.info('Most similar words for: %s are %s', tweet, similar)
 
 
+
+
+
+
 if __name__ == "__main__":
 	#main()
-	testModel()
+	#testModel()

@@ -48,13 +48,16 @@ def cluster(dataset):
 
 	###############################################################################
 	# Do the actual clustering
-	ks = range(1, 10, 1)
-	indices = range(1, 10, 1)
+	n_clusters = 90
+	n_clusters_step = 5
+	n_clusters_mean = 10
+	ks = range(1, n_clusters, n_clusters_step)
+	indices = range(1, n_clusters_mean, 1)
 	errors = []
 	ref_errors = []
 	gaps = []
 	for k in ks:
-		km = KMeans(n_clusters=k)
+		km = KMeans(n_clusters=k, n_jobs=4)
 		km.fit(X)
 		km_inert = km.inertia_
 		print(km_inert)
@@ -62,7 +65,7 @@ def cluster(dataset):
 
 		ref = []
 		for i in indices:
-			km = KMeans(n_clusters=k)
+			km = KMeans(n_clusters=k, n_jobs=4)
 			km.fit(X)
 			ref.append(km.inertia_)
 		ref_mean = np.mean(ref)
@@ -78,6 +81,8 @@ def cluster(dataset):
 			continue
 	print(gaps)
 	plt.plot(gaps)
+	plt.plot(ks, errors)
+	plt.plot(ks, ref_errors)
 	plt.show()
 	sys.exit(0)
 
@@ -85,8 +90,7 @@ def cluster(dataset):
 
 
 	k = 5
-	km = KMeans(n_clusters=5, init='k-means++', max_iter=100, n_init=1,
-					verbose=opts.verbose)
+	km = KMeans(n_clusters=5, init='k-means++', max_iter=100, n_init=1, verbose=opts.verbose, n_jobs=4)
 
 	print("Clustering sparse data with %s" % km)
 	t0 = time()
@@ -110,41 +114,10 @@ def cluster(dataset):
 		print()
 
 
-def iter_kmeans(X, n_clusters, num_iters=5):
-	rng =  range(1, num_iters + 1)
-	vals = [0]*num_iters
-	print(vals)
-	for i in rng:
-		print(i)
-		k = KMeans(n_clusters=n_clusters, n_init=3)
-		k.fit(X)
-		print("Ref k: %s" % k.get_params()['n_clusters'])
-		vals[i-1] = k.inertia_
-	print(vals)
-	return vals
 
-def gap_statistic(X, max_k=10):
-	gaps = range(1, max_k + 1)
-	for k in gaps:
-		km_act = KMeans(n_clusters=k)#, n_init=3)
-		km_act.fit(X)
 
-		# get ref dataset
-		#ref = df.apply(get_rand_data)
-		refs = iter_kmeans(X, n_clusters=k)
-		ref_inertia = np.mean(refs)
-		print(ref_inertia)
-		print(km_act.inertia_)
-		try:
-			gap = math.log(ref_inertia - km_act.inertia_)
-		except ValueError:
-			gap = 0
-		print("Ref: %s   Act: %s  Gap: %s" % ( ref_inertia, km_act.inertia_, gap))
-		gaps[k] = gap
-
-	return gaps
 
 if __name__ == '__main__':
-	fname = '/home/robert/master/cluster/data/test.txt'
+	fname = '/home/robert/master/cluster/data/20151201:00.out.gz.txt'
 	sentences = open(fname, 'r').readlines()
 	cluster(sentences)

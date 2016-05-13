@@ -99,13 +99,13 @@ def plot_ram(folder):
 
 
 #for five years of tweets, plot the average frequency per day
-def plot_dates():
+def plot_dates(year):
 	import dateutil.parser
 	import sys
 	from datetime import date
 
-	fname = "/media/robert/dataThesis/tweets/dates.txt"
-	year = 2012
+	#fname = "/media/robert/dataThesis/tweets/dates.txt"
+	fname = "/home/robert/Downloads/dates.txt"
 	last_day = date(year, 12, 31)
 	day_freqs = {}
 	days = range(1,366,1)
@@ -125,7 +125,7 @@ def plot_dates():
 					print day_number
 					old_day_number = day_number
 					day_freqs[str(day_number)] += 1
-			if date.year == 2013:
+			if date.year == year +1:
 				print day_freqs
 				sys.exit(0)
 
@@ -173,11 +173,13 @@ def plot_coordinates():
 
 if __name__ == "__main__":
 	#main()
-	results_folder = '/home/robert/Dropbox/Master/results/'
+	#results_folder = '/home/robert/Dropbox/Master/results/'
 	#plot_cpu_scaling()
 	#plot_ram(results_folder)
 	#plot_time(results_folder)
 	#plot_model_size(results_folder)
 	#plot_coordinates()
-	plot_dates()
+
+	year = 2015
+	plot_dates(year)
 	#plot_dates_fixed(results_folder)

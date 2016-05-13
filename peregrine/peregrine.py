@@ -48,9 +48,123 @@ def test_model():
 	model = gensim.models.Word2Vec.load(mname)
 	tweets = ['ik heb geen zin meer in Twitter', '@celine_maas ja joh mn zus kijkt het :(', '@RiannePathuis ik ook niet :P']
 	for tweet in tweets:
-		print model.most_similar(tweet.split())
+		#using topn you can acquire the feature vector
+		print model.most_similar(tweet.split(), topn=False)
+
+
+
+
+
+def iterative_training():
+
+	mdir = '/data/s1774395/models/'
+	ddir = '/data/s1774395/text/'
+
+	import os
+	mname = "gensimIterModel.bin"
+
+	topdir = os.listdir(ddir)
+	topdir.sort()
+	for middir in topdir:
+		bottomdir = os.listdir(ddir + middir)
+		bottomdir.sort()
+		for subdir in bottomdir:
+			files = os.listdir(ddir + middir + "/" + subdir)
+			files.sort()
+			print files
+
+			for file in files:
+				try:
+					fname = ddir +  middir + "/" + subdir + "/" + file
+
+					logger.info(fname)
+
+					done_files = open(mdir + "good_files", 'r')
+					done_files = done_files.readlines()
+					cp_done_files = []
+					for file in done_files:
+						cp_done_files.append(file.strip())
+					done_files = cp_done_files
+
+					#done_files = [d.strip() for d in open(mdir + "good_files", 'r').readlines()]
+
+					if fname in done_files:
+						logger.info("Already trained on file: " + fname)
+						continue
+
+					sentences = [line.split() for line in open(fname).readlines()]
+
+					if os.path.isfile(mdir + mname):
+						logger.info("loading model")
+						model = gensim.models.word2vec.Word2Vec.load(mdir + mname)
+						try:
+							model.train(sentences)
+							gensim.models.word2vec.Word2Vec.save(model, mdir + mname)
+							g = open(mdir + "good_files", 'a')
+							g.write(fname + '\n')
+							g.close()
+						except:
+							import traceback
+							traceback.print_exc()
+							b = open(mdir + "bad_files", 'a')
+							b.write(fname + '\n')
+							b.close()
+							continue
+					else:
+						try:
+							logger.info("Training model")
+							model = gensim.models.word2vec.Word2Vec(sentences, size=100000, window=5, min_count=5, workers=24)
+							gensim.models.word2vec.Word2Vec.save(model, mdir + mname)
+							g = open(mdir + "good_files", 'a')
+							g.write(fname + "\n")
+							g.close()
+						except:
+							import traceback
+							traceback.print_exc()
+							continue
+
+				except Exception:
+					import traceback
+					traceback.print_exc()
+					continue
+				try:
+					os.system("cp " + mdir + mname + " " + mdir + "copy_" + mname)
+				except:
+					logger.info("model copy error")
+
+def get_dates_freq(fname, year):
+	import dateutil.parser
+	import sys
+	from datetime import date
+	last_day = date(year, 12, 31)
+	day_freqs = {}
+	days = range(1,366,1)
+	for i in days:
+		day_freqs[str(i)] = 0
+
+	old_day_number = -1
+	with open(fname) as f:
+		for line in f:
+			date = dateutil.parser.parse(line)
+			if date.year == year:
+				day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
+				if day_number == old_day_number:
+					day_freqs[str(day_number)] += 1
+					pass
+				else:
+					print day_number
+					old_day_number = day_number
+					day_freqs[str(day_number)] += 1
+			if date.year == year +1:
+				print day_freqs
+				sys.exit(0)
+
+	print day_freqs
 
 if __name__ == "__main__":
-		train_model()
-
+	#train_model()
+	#iterative_training()
+	year = 2015
+	fname = "/data/s1774395/dates.txt"
+	get_dates_freq(fname, year)
 

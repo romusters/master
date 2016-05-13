@@ -603,13 +603,55 @@ def main():
 
 	#print abbreviations
 
+def filter_numbers(dir):
+	import os
+	topdir = os.listdir(dir)
+	topdir.sort()
+
+	for middir in topdir:
+		bottomdir = os.listdir(dir + middir)
+		bottomdir.sort()
+		for subdir in bottomdir:
+			files = os.listdir(dir + middir + "/" + subdir)
+			files.sort()
+			for file in files:
+				try:
+					fname = dir +  middir + "/" + subdir + "/" + file
+					outfile = fname + ".num"
+					print fname
+					with open(fname) as i:
+						for l in i:
+							s = l.split()
+							sentence = []
+							for e in s:
+								if e.isdigit():
+									if e > 1000:
+										sentence.append("NUM1000")
+										continue
+									if e > 100:
+										sentence.append("NUM100")
+										continue
+									else:
+										sentence.append("NUM")
+								else:
+									sentence.append(e)
+
+
+							o = open(outfile, 'a')
+							o.write(" ".join(sentence) + "\n")
+							o.close()
+				except Exception, err:
+					import traceback
+					traceback.print_exc()
 if __name__ == "__main__":
 	#main()
 
 	#dir = '/data/s1774395/text/'
-	dir = '/home/robert/master/cluster/data/'
-	concat_files_shallow(dir, dir + "input.txt")
+	#dir = '/home/robert/master/cluster/data/'
+	dir = "/home/robert/data/test/"
+	#concat_files_shallow(dir, dir + "input.txt")
 	#extractAllData('/home/robert/8Gbuildup/03/')
-	#getDates('/media/robert/dataThesis/tweets/')
+	getDates('/media/robert/dataThesis/tweets/')
 	#removeCharFromFilename(dir)
 	#remove_username_shallow_from_textfiles(dir)
+	#filter_numbers(dir)
