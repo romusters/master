@@ -143,11 +143,14 @@ def get_dates_freq(fname, year):
 		day_freqs[str(i)] = 0
 
 	old_day_number = -1
-	
+
+	print "opening file"
 	f = open(fname)
+	print "reading lines"
 	lines = f.readlines()
 
 	for line in lines:
+		print line
 		date = dateutil.parser.parse(line)
 		if date.year == year:
 			day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
