@@ -147,39 +147,26 @@ def get_dates_freq(fname, year):
 	old_day_number = -1
 
 	logger.info("opening file")
-	# f = open(fname)
-	# logger.info("reading lines")
-	# lines = f.readlines()
-	# logger.info("length lines%i", len(lines))
-
-	import mmap
-
-	with open(fname, 'rb') as f:
-		# Size 0 will read the ENTIRE file into memory!
-		m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) #File is open read-only
-
-		# Proceed with your code here -- note the file is already in memory
-		# so "readine" here will be as fast as could be
-		data = m.readline()
-		while data:
-			# Do stuff
-			line = m.readline()
-
-		#for line in lines:
-			#print line
-			date = dateutil.parser.parse(line)
-			if date.year == year:
-				day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
-				if day_number == old_day_number:
-					day_freqs[str(day_number)] += 1
-					pass
-				else:
-					#print day_number
-					old_day_number = day_number
-					day_freqs[str(day_number)] += 1
-			if date.year == year +1:
-				#print day_freqs
-				sys.exit(0)
+	f = open(fname, 'r')
+	logger.info("reading lines")
+	lines = f.readlines()
+	f.close()
+	logger.info("length lines%i", len(lines))
+	for line in lines:
+		#print line
+		date = dateutil.parser.parse(line)
+		if date.year == year:
+			day_number = (365 + (date.date() - last_day).days) + 1 #+1 is correct?
+			if day_number == old_day_number:
+				day_freqs[str(day_number)] += 1
+				pass
+			else:
+				#print day_number
+				old_day_number = day_number
+				day_freqs[str(day_number)] += 1
+		if date.year == year +1:
+			#print day_freqs
+			sys.exit(0)
 
 	import json
 	json.dump(day_freqs, open("/data/s1774395/dates2015", "w"))
