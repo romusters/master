@@ -6,46 +6,57 @@ follower_length = [672, 647, 265, 178, 151, 140, 95, 89]
 
 coordinates_found = [15, 7, 5, 2, 4, 1, 3, 1]
 
-a = sum(follower_length)/len(follower_length)
-b = sum(coordinates_found)/len(coordinates_found)
+# determine ratio
+def ratio():
+	a = sum(follower_length)/len(follower_length)
+	b = sum(coordinates_found)/len(coordinates_found)
 
-print a
-print b
-print a/b
+	print a
+	print b
+	print a/b
 
-res = 0
-for i in range(len(follower_length)):
-	res += float(coordinates_found[i])/follower_length[i]
+	res = 0
+	for i in range(len(follower_length)):
+		res += float(coordinates_found[i])/follower_length[i]
 
-res /= len(follower_length)
-print res
+	res /= len(follower_length)
+	print res
 
 
 
 import validateGeo
-
+import utils
 print validateGeo.center_geolocation(followers_coordinates[0])
 
 import sklearn.cluster
 import numpy as np
-X = followers_coordinates[0]
-print X
 
-db = sklearn.cluster.DBSCAN().fit(followers_coordinates[0])
-core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-core_samples_mask[db.core_sample_indices_] = True
-labels = db.labels_
-print db.components_
-print db.get_params()
+for i, X in enumerate(followers_coordinates):
+	print "True coordinate is: ", users_coordinates[i]
 
-# Number of clusters in labels, ignoring noise if present.
-n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-print n_clusters_
+	db = sklearn.cluster.DBSCAN(eps=0.5, min_samples=3).fit(X)
+	core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+	core_samples_mask[db.core_sample_indices_] = True
+	labels = db.labels_
 
-# Plot result
-import matplotlib.pyplot as plt
+	#possibly component of largest cluster
+	print "predicted cluster is: ", db.components_.tolist()
+	if len(db.components_.tolist()) is 0:
+		continue
+	print "predicted center is: COM", validateGeo.center_geolocation(X)
+	print "predicted center is: DB", validateGeo.center_geolocation(db.components_.tolist())
 
-plt.title('Estimated number of clusters: %d' % n_clusters_)
-for p in X:
-	plt.scatter(p[0], p[1])
-plt.show()
+	print "error is: COM: ", int(abs(utils.distance(users_coordinates[i], validateGeo.center_geolocation(X))))
+	print "error is: DB: ",	int(abs(utils.distance(users_coordinates[i], validateGeo.center_geolocation(db.components_.tolist()))))
+
+	# Number of clusters in labels, ignoring noise if present.
+	n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+	print "number of clusters is: ", n_clusters_
+
+	# Plot result
+	# import matplotlib.pyplot as plt
+	#
+	# plt.title('Estimated number of clusters: %d' % n_clusters_)
+	# for p in X:
+	# 	plt.scatter(p[0], p[1])
+	# plt.show()

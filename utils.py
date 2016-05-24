@@ -62,7 +62,8 @@ class Utils:
 		for page in tweepy.Cursor(self.api.followers_ids, id=user).pages():
 			ids.extend(page)
 		print "Ids of friends are: ", ids
-		if len(ids) > 100:
+		#previously was 100
+		if len(ids) > 1000:
 			return False, False
 		# screen_names = [user.screen_name for user in self.api.lookup_users(user_ids=ids)]
 		# print screen_names
@@ -86,10 +87,8 @@ class Utils:
 		# if data['geo_enabled']:
 		try:
 			return data.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
-		except AttributeError:
-			pass
-		except TypeError:
-			pass
+		except:
+			return False
 
 
 

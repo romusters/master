@@ -56,7 +56,7 @@ def main():
 	usersJustDone = set(alreadyDone)
 	usersTooLarge = ['1166383453', '108124138', '28219825', '219606376', '517477928', '20719533']
 	usersDone = ['171536032', '2207599764', '228842529', '371376582', '708766332', '198488640', '6360462', '212718435', '621069461', '1918391694','144110593', '1656089485', '1079527514'  ]
-	for user in users:
+	for i, user in enumerate(users):
 		if str(user) in usersDone:
 			print "User is already done: ", user
 			continue
@@ -128,7 +128,16 @@ def main():
 				f.write(str(coordinates) + '\n')
 			else:
 				logger.info("No coordinates found :(")
-			f.write(util.getCoordinate(user))
+			coordinate = util.getCoordinate(user)
+			f.write("User location\n")
+			if coordinate:
+				f.write(str(coordinate))
+			else:
+				f.write("User changed its location settings to disabled.\n")
+				try:
+					f.write(str(coor[i]))
+				except:
+					pass
 		usersDone.append(user)
 		f.close()
 
@@ -160,18 +169,24 @@ def dateFeature(iday):
 
 
 #calculate center of mass to check if the inferred location is indeed the correct location
-def centerMass():
+def centerMass(geolocations):
 	import numpy as np
 	import matplotlib.pyplot as plt
 
-	#points.toArray
-	n = 20
+	# #points.toArray
+	# n = 20
+	n = len(geolocations)
 	m = [1] * n
-	x = np.random.randint(-50, 50, n)
-	y = np.random.randint(0,200,n)
-
-	cgx = np.sum(x*m)/np.sum(m)
-	cgy = np.sum(y*m)/np.sum(m)
+	# x = np.random.randint(-50, 50, n)
+	# y = np.random.randint(0,200,n)
+	x_list = []
+	y_list = []
+	for [x, y] in geolocations:
+		print x
+		x_list.append(x)
+		y_list.append(y)
+	cgx = np.sum(x_list*m)/np.sum(m)
+	cgy = np.sum(y_list*m)/np.sum(m)
 
 	plt.rcParams['figure.figsize'] = (6, 10)  # (width, height)
 	plt.scatter(x,y,s=m)
@@ -181,8 +196,16 @@ def centerMass():
 
 	return cgx, cgy
 
-
 def center_geolocation(geolocations):
+	x = 0
+	y = 0
+	for lat, lon in geolocations:
+		x += lat
+		y += lon
+	return [x/len(geolocations), y/len(geolocations)]
+
+#does not work, longitude is way off.
+def center_geolocation_advanced(geolocations):
 	import math
 	"""
 	Provide a relatively accurate center lat, lon returned as a list pair, given
@@ -197,9 +220,10 @@ def center_geolocation(geolocations):
 	for lat, lon in geolocations:
 		lat = float(lat)
 		lon = float(lon)
-		x += math.cos(lat) * math.cos(lon)
-		y += math.cos(lat) * math.sin(lon)
-		z += math.sin(lat)
+		print lon
+		x += 6371*math.cos(lat) * math.cos(lon)
+		y += 6371*math.cos(lat) * math.sin(lon)
+		z += 6371*math.sin(lat)
 
 	x = float(x / len(geolocations))
 	y = float(y / len(geolocations))
