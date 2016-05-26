@@ -71,9 +71,11 @@ def mv_tags(tweet):
 			words[i] = "<STOPWORD>"
 	return " ".join(words)
 
+#/data/s1774395/text/2015/01/20150101:00.out.gz.txt
 
 def rm_encoding(s):
-	return s.encode('ascii','ignore')
+	#former ascii
+	return s.decode('utf-8').encode('utf-8','ignore')
 
 
 def filter(s):
