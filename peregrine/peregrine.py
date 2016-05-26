@@ -52,7 +52,34 @@ def test_model():
 		print model.most_similar(tweet.split(), topn=False)
 
 
+max_int_size = 268435455
+vocab_size = 34179832
+vector_size = max_int_size / vocab_size
 
+
+
+stopwords = ['de', 'en', 'van', 'ik', 'te', 'dat', 'die', 'in', 'een', 'hij', 'het', 'niet', 'zijn', 'is', 'was', 'op', 'aan', 'met', 'als', 'voor', 'had', 'er', 'maar', 'om', 'hem', 'dan', 'zo', 'of', 'wat', 'mijn', 'men', 'dit', 'zo', 'door', 'over', 'ze', 'zich', 'bij', 'ook', 'tot', 'je', 'mij', 'it', 'der', 'daar', 'haar', 'naar', 'heb', 'hoe', 'heeft', 'hebben', 'deze', '', 'want', 'nog', 'zal', 'me', 'zij', 'n', 'ge', 'geen', 'omdat', 'iets', 'worden', 'toch', 'al', 'waren', 'veel', 'meer', 'doen', 'toen', 'moet', 'ben', 'zonder', 'kan', 'hn', 'ds', 'alles', 'onder', 'ja', 'eens', 'hier', 'wie', 'werd', 'altijd', 'doch', 'wordt', 'wezen', 'knnen', 'ons', 'zelf', 'tegen', 'na', 'reeds', 'wil', 'kon', 'niets', 'w', 'iemand', 'geweest', 'andere']
+
+def mv_tags(tweet):
+	words = tweet.split(" ")
+	for i, word in enumerate(words):
+		if "http" in word:
+			words[i] = "<URL>"
+		if "@" in word:
+			words[i] = "<MENTION>"
+		if word in stopwords:
+			words[i] = "<STOPWORD>"
+	return " ".join(words)
+
+
+def rm_encoding(s):
+	return s.encode('ascii','ignore')
+
+
+def filter(s):
+	s = rm_encoding(s)
+	s = mv_tags(s)
+	return s
 
 
 def iterative_training():
@@ -92,8 +119,11 @@ def iterative_training():
 						logger.info("Already trained on file: " + fname)
 						continue
 
-					sentences = [line.split() for line in open(fname).readlines()]
-
+					#sentences = [line.split() for line in open(fname).readlines()]
+					sentences = []
+					for s in open(fname):
+						sentences.append(filter(s).split(" "))
+					print sentences[0]
 					if os.path.isfile(mdir + mname):
 						logger.info("loading model")
 						model = gensim.models.word2vec.Word2Vec.load(mdir + mname)
@@ -113,7 +143,8 @@ def iterative_training():
 					else:
 						try:
 							logger.info("Training model")
-							model = gensim.models.word2vec.Word2Vec(sentences, size=100000, window=5, min_count=5, workers=24)
+							#size was previously 100000
+							model = gensim.models.word2vec.Word2Vec(sentences, size=vector_size, window=5, min_count=5, workers=24)
 							gensim.models.word2vec.Word2Vec.save(model, mdir + mname)
 							g = open(mdir + "good_files", 'a')
 							g.write(fname + "\n")
@@ -131,6 +162,8 @@ def iterative_training():
 					os.system("cp " + mdir + mname + " " + mdir + "copy_" + mname)
 				except:
 					logger.info("model copy error")
+
+
 
 def get_dates_freq(fname, year):
 
@@ -173,8 +206,8 @@ def get_dates_freq(fname, year):
 
 if __name__ == "__main__":
 	#train_model()
-	#iterative_training()
+	iterative_training()
 	year = 2015
 	fname = "/data/s1774395/dates.txt"
-	get_dates_freq(fname, year)
+	#get_dates_freq(fname, year)
 

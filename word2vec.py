@@ -9,6 +9,7 @@ import word2vecReader
 import sys
 import logging
 
+model = gensim.models.Word2Vec.load_word2vec_format('/home/robert/model.bin', binary=true)
 
 #sys.setdefaultencoding()
 

@@ -38,6 +38,21 @@ def plot_model_size(folder):
 	plt.savefig(folder + "model.png")
 	plt.show()
 
+def plot_word_freq(fname):
+	occs = []
+	import matplotlib.pyplot as plt
+	for line in open(fname, 'r'):
+		data = eval(line)
+		occs.append(data[1])
+		print data
+	x = range(1, len(occs))
+	plt.title("Occurrences")
+	plt.plot(x, occs)
+	plt.ylabel('Occurrences')
+	plt.xlabel('Feature index')
+	#plt.savefig(folder + "time.png")
+	plt.show()
+
 
 def plot_time(folder):
 	import matplotlib.pyplot as plt
@@ -171,5 +186,6 @@ if __name__ == "__main__":
 	#plot_coordinates()
 
 	year = 2015
-	freqs = plot_dates(year)
-	plot_dates_fixed(year, freqs, results_folder)
+	#freqs = plot_dates(year)
+	#plot_dates_fixed(year, freqs, results_folder)
+	plot_word_freq('/home/robert/counts_sorted')
