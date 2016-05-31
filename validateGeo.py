@@ -76,6 +76,7 @@ def main():
 
 		#if the user exists
 		if util.user is not None:
+			time.sleep(9000)
 			friends, ids = util.getFriends(user)
 			if friends is False:
 				print "Too many friends"

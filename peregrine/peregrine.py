@@ -3,9 +3,11 @@ import logging
 import sys
 import gensim
 
+sys.path.insert(0, '..')
+from hadoop import filter
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
-
 
 class DirOfPlainTextCorpus(object):
 	def __init__(self, fname):
@@ -58,32 +60,6 @@ vector_size = max_int_size / vocab_size
 
 
 
-stopwords = ['de', 'en', 'van', 'ik', 'te', 'dat', 'die', 'in', 'een', 'hij', 'het', 'niet', 'zijn', 'is', 'was', 'op', 'aan', 'met', 'als', 'voor', 'had', 'er', 'maar', 'om', 'hem', 'dan', 'zo', 'of', 'wat', 'mijn', 'men', 'dit', 'zo', 'door', 'over', 'ze', 'zich', 'bij', 'ook', 'tot', 'je', 'mij', 'it', 'der', 'daar', 'haar', 'naar', 'heb', 'hoe', 'heeft', 'hebben', 'deze', '', 'want', 'nog', 'zal', 'me', 'zij', 'n', 'ge', 'geen', 'omdat', 'iets', 'worden', 'toch', 'al', 'waren', 'veel', 'meer', 'doen', 'toen', 'moet', 'ben', 'zonder', 'kan', 'hn', 'ds', 'alles', 'onder', 'ja', 'eens', 'hier', 'wie', 'werd', 'altijd', 'doch', 'wordt', 'wezen', 'knnen', 'ons', 'zelf', 'tegen', 'na', 'reeds', 'wil', 'kon', 'niets', 'w', 'iemand', 'geweest', 'andere']
-
-def mv_tags(tweet):
-	words = tweet.split(" ")
-	for i, word in enumerate(words):
-		if "http" in word:
-			words[i] = "<URL>"
-		if "@" in word:
-			words[i] = "<MENTION>"
-		if word in stopwords:
-			words[i] = "<STOPWORD>"
-	return " ".join(words)
-
-#/data/s1774395/text/2015/01/20150101:00.out.gz.txt
-
-def rm_encoding(s):
-	#former ascii
-	return s.decode('utf-8').encode('utf-8','ignore')
-
-
-def filter(s):
-	s = rm_encoding(s)
-	s = mv_tags(s)
-	return s
-
-
 def iterative_training():
 
 	mdir = '/data/s1774395/models/'
@@ -124,7 +100,7 @@ def iterative_training():
 					#sentences = [line.split() for line in open(fname).readlines()]
 					sentences = []
 					for s in open(fname):
-						sentences.append(filter(s).split(" "))
+						sentences.append(filter.filter(s).split(" "))
 					print sentences[0]
 					if os.path.isfile(mdir + mname):
 						logger.info("loading model")
