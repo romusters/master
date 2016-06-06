@@ -10,7 +10,9 @@ def filter(s):
 	return s
 
 def rm_encoding(s):
-	return s.decode('utf-8').encode('ascii','ignore')
+#	return s.decode('utf-8').encode('ascii', 'ignore')
+
+	return s.encode('ascii','ignore')
 
 
 def rm_punctuation(s):
@@ -27,6 +29,19 @@ def mv_tags(tweet):
 			words[i] = "<MENTION>"
 		elif word in stemming.stopwords:
 			words[i] = "<STOPWORD>"
+		elif "haha" in word:
+			words[i] = "haha"
+		elif "#" in word:
+			words[i] = word.replace("#", "")
 		else:
 			words[i] = stemming.stem(word)
 	return " ".join(words)
+
+
+def test(i):
+	if i>1:
+		print 1
+	elif i>2:
+		print 2
+	else:
+		print 3

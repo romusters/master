@@ -18,9 +18,13 @@ model = Word2VecModel.load(sc, '/user/rmusters/pymodel_filtered3.bin')
 vec = model.getVectors()
 vec = str(vec)
 
-path =  '/user/rmusters/vectors.txt'
-with open(path, 'w') as textfile:
-	textfile.write(vec)
+rdd = sc.parallelize(vec)
+path =  'hdfs:///user/rmusters/vectors4.txt'
+
+rdd.saveAsTextFile(path)
+
+	# with open(path, 'w+') as textfile:
+	# 	textfile.write(vec)
 
 
 print sys.getsizeof(model.getVectors)

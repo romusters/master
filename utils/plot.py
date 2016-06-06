@@ -176,6 +176,29 @@ def plot_coordinates():
 	print user_coordinates
 	print validateGeo.center_geolocation(coordinates)
 
+
+def plot_occurrences():
+	fname = '/home/cluster/counts_taggedUrl_Mention_Stopwords_Punctuation_ignoreNonAscii_Stemmed'
+	occs = []
+	# with open(fname, 'r') as f:
+	# 	for line in f:
+	# 		value = eval(line)[1]
+	# 		occs.append(value)
+	#
+	# with open('/home/cluster/occurrences.txt', 'w+') as f:
+	# 	for e in occs:
+	# 		f.write("%s\n" % e)
+	import math
+	with open('/home/cluster/occurrences.txt', 'r') as f:
+		for line in f:
+			occs.append(math.log(int(line)))
+
+	x = range(0, len(occs), 1)
+	import matplotlib.pyplot as plt
+	plt.plot(x, occs)
+	plt.show()
+
+
 if __name__ == "__main__":
 	#main()
 	results_folder = '/home/robert/Dropbox/Master/results/'
@@ -188,4 +211,6 @@ if __name__ == "__main__":
 	year = 2015
 	#freqs = plot_dates(year)
 	#plot_dates_fixed(year, freqs, results_folder)
-	plot_word_freq('/home/robert/counts_sorted')
+	#plot_word_freq('/home/robert/counts_sorted')
+
+	plot_occurrences()
