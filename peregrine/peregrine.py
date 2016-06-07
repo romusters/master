@@ -55,9 +55,8 @@ def test_model():
 
 
 max_int_size = 268435455
-vocab_size = 34179832
+vocab_size = 1811786#34179832
 vector_size = max_int_size / vocab_size
-
 
 
 def iterative_training():
