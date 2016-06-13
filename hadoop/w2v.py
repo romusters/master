@@ -3,9 +3,7 @@ from pyspark.mllib.feature import Word2Vec, HashingTF
 import logging, sys
 import filter
 
-# The command
-# spark-submit --master yarn --executor-memory 50g --driver-memory 50g --deploy-mode cluster --num-executors 1000 master/hadoop/w2v.py
-#--driver-memory 50g --executor-memory 6g ----num-executors 400
+#spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --master yarn --deploy-mode cluster --num-executors 400  master/hadoop/w2v.py
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -14,12 +12,12 @@ logger = logging.getLogger(__name__)
 #loc = '/user/rmusters/text/2010/12/20101231-23.out.gz.txt'
 
 # Larger file
-loc = '/user/rmusters/text/2015/01/*'
+loc = '/user/rmusters/text/2015/*/*'
 
 conf = (SparkConf()
     .set("spark.driver.maxResultSize", "0")\
 	.set("driver-memory", "50g")\
-	.set("executor-memoery", "6g")\
+	.set("executor-memory", "6g")\
 	.set("num-executors", "400"))
 
 sc = SparkContext(appName='Word2Vec', conf=conf)
@@ -49,10 +47,17 @@ vector_size = max_int_size / vocab_size
 print "Vector size is: ", vector_size
 
 word2vec = Word2Vec()
-word2vec.setMinCount(40)
-word2vec.setVectorSize(vector_size/100)
-model = word2vec.fit(inp)
+word2vec.setMinCount(10)#40
+word2vec.setVectorSize(vector_size)#/100
 
-model.save(sc, '/user/rmusters/2015modelfull2')
+for idx in range(1, 100, 1):
+	print idx
+	model = word2vec.fit(inp.sample(False, 0.01))
+	model.save(sc, '/user/rmusters/whole2015model' + str(idx))
+
+
+#pyspark --packages com.databricks:spark-csv_2.10:1.4.0
+# vectors = sqlContext.read.parquet('/user/rmusters/2015modelfull2/data')
+# vectors.save("vectors.csv", "com.databricks.spark.csv")
 
 #model =  word2vec.load(sc, '/user/rmusters/pymodel.bin')

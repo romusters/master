@@ -32,15 +32,6 @@ model.save(sc, '/user/rmusters/testModel3')
 #vec = str(vec)
 #rdd = sc.parallelize(vec)
 
-pyspark --packages com.databricks:spark-csv_2.10:1.4.0
-vectors = sqlContext.read.parquet("testModel2/data")
-vectors.save("vectors2.csv", "com.databricks.spark.csv")
-
-import csv
-path = "/home/cluster/vectors2.csv"
-with open(path, 'rb') as csvfile:
-	rows = csv.reader(csvfile, delimiter=',')
-	print rows.next()
 
 #path =  'hdfs:///user/rmusters/testVectors.txt'
 path = "/user/rmusters/testVectors3.txt"

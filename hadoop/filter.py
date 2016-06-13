@@ -10,8 +10,10 @@ def filter(s):
 	return s
 
 def rm_encoding(s):
+# Peregrine
 #	return s.decode('utf-8').encode('ascii', 'ignore')
 
+# Hadoop
 	return s.encode('ascii','ignore')
 
 
