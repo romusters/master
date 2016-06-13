@@ -42,12 +42,13 @@ def main():
 	vectors = load_vectors()
 
 	#dname = "/home/cluster/201501/"
-	dname = "/data/s1774395/text/2015/01"
+	dname = "/data/s1774395/text/2015/01/"
 	files = os.listdir(dname)
 
 	vname = "/data/s1774395/vectors.txt"
 
 	idx = 0
+	print "starting to read the files"
 	for file in files:
 		idx = idx + 1
 		print idx

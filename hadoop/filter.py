@@ -11,10 +11,10 @@ def filter(s):
 
 def rm_encoding(s):
 # Peregrine
-#	return s.decode('utf-8').encode('ascii', 'ignore')
+	return s.decode('utf-8').encode('ascii', 'ignore')
 
 # Hadoop
-	return s.encode('ascii','ignore')
+#	return s.encode('ascii','ignore')
 
 
 def rm_punctuation(s):
