@@ -1,3 +1,7 @@
+import sys
+sys.path.insert(0, '..')
+from hadoop import filter
+
 
 # pyspark --packages com.databricks:spark-csv_2.10:1.4.0
 # vectors = sqlContext.read.parquet("testModel2/data")
@@ -33,7 +37,6 @@ def tweet_to_vector(tweet, vectors):
 
 def main():
 	import os,sys
-	from hadoop import filter
 	import pickle
 
 	vectors = load_vectors()
