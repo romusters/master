@@ -15,7 +15,7 @@ def rm_wrapped_array():
 
 def load_vectors():
 	import pickle
-	path = "/home/cluster/p_vectors"
+	path = "/data/s1774395/p_vectors"
 	vectors = pickle.load(open(path, "rb"))
 	return vectors
 
@@ -33,7 +33,7 @@ def tweet_to_vector(tweet, vectors):
 
 def main():
 	import os,sys
-	import filter
+	from hadoop import filter
 	import pickle
 
 	vectors = load_vectors()
