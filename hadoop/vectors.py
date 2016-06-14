@@ -61,7 +61,7 @@ def main():
 			if v_pass > 10:
 				vector = tweet_to_vector(filter.filter(line), vectors)
 				with open(vname, 'a') as vfile:
-					vfile.write(str(vector))
+					vfile.write([str(vector)] + "\n")
 				v_pass = 0
 			else:
 				v_pass += 1
