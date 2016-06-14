@@ -53,11 +53,12 @@ def dist_mp(base_tweet, tweet):
 def distances():
 	sequence_list = []
 	idx = 0
-	for line in open("/data/s1774395/vectors.txt","r"):
-		sequence_list.append(eval(line))
-		if idx > 10:
-			continue
-		idx += 1
+	with open("/data/s1774395/vectors.txt","r") as v_file:
+		for line in v_file:
+			sequence_list.append(eval(line))
+			if idx > 10:
+				continue
+			idx += 1
 
 	results = []
 
