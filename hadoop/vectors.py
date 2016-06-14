@@ -55,10 +55,17 @@ def main():
 	for file in files:
 		idx = idx + 1
 		logger.info(idx)
+		v_pass = 0
 		for line in open(dname + file):
-			vector = tweet_to_vector(filter.filter(line), vectors)
-			with open(vname, 'a') as vfile:
-				vfile.write(str(vector))
+			# take every tenth of tweet, to decrease the dataset
+			if v_pass > 10:
+				vector = tweet_to_vector(filter.filter(line), vectors)
+				with open(vname, 'a') as vfile:
+					vfile.write(str(vector))
+				v_pass = 0
+			else:
+				v_pass += 1
+				continue
 
 if __name__ == "__main__":
 	main()
