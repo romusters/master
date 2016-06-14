@@ -1,7 +1,10 @@
 import sys
 sys.path.insert(0, '..')
 from hadoop import filter
+import logging
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 # pyspark --packages com.databricks:spark-csv_2.10:1.4.0
 # vectors = sqlContext.read.parquet("testModel2/data")
@@ -51,7 +54,7 @@ def main():
 	print "starting to read the files"
 	for file in files:
 		idx = idx + 1
-		print idx
+		logger.info(idx)
 		for line in open(dname + file):
 			vector = tweet_to_vector(filter.filter(line), vectors)
 			with open(vname, 'a') as vfile:
