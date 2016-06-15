@@ -21,13 +21,14 @@ data = sc.textFile(loc).map(lambda line: line.split(",", 1))\
 	.map(lambda line: (line[0], eval(line[1].replace('WrappedArray', "").replace("(", "[").replace(")", "]"))))
 
 base = data.take(1)
-base = base[1]
 logger.info(base)
 logger.info(type(base))
 
 base = np.asarray(base)
 
-data = data.map(lambda line: abs(np.sum(np.subtract(np.asarray(line[1]), base))))
+data = data.map(lambda line: abs(np.sum(np.subtract(np.asarray(eval(line[0][1])), base))))
+d = data.take(1)
+logger.info(d)
 
 path =  'hdfs:///user/rmusters/distances.txt'
 data.saveAsTextFile(path)

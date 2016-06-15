@@ -44,7 +44,9 @@ import pickle
 def edit_distance(base_tweet, tweet):
 	base_tweet = np.asarray(base_tweet)
 	tweet = np.asarray(tweet)
-	return abs(np.sum(np.subtract(base_tweet, tweet)))
+	subt = np.subtract(base_tweet, tweet)
+	s = np.sum(subt)
+	return abs(s)
 
 def dist_mp(base_tweet, tweet):
 	return tweet, edit_distance(base_tweet, tweet)
@@ -66,7 +68,10 @@ def distances():
 	results = []
 
 	for s in sequence_list:
-		results.append(edit_distance(base_tweet, s))
+		try:
+			results.append(edit_distance(base_tweet, s))
+		except ValueError:
+			pass
 	results.sort()
 	#
 	# pool = Pool()  # use all CPUs
