@@ -60,16 +60,20 @@ def distances():
 				continue
 			idx += 1
 
-	results = []
-
 	base_tweet = sequence_list[0]
 	logger.info(base_tweet)
 
-	pool = Pool()  # use all CPUs
-	for tweet, d in pool.imap_unordered(partial(dist_mp, base_tweet), sequence_list):
-		results.append(d)
-	pool.close()
-	pool.join()
+	results = []
+
+	for s in sequence_list:
+		results.append(edit_distance(base_tweet, s))
+
+	#
+	# pool = Pool()  # use all CPUs
+	# for tweet, d in pool.imap_unordered(partial(dist_mp, base_tweet), sequence_list[1:]):
+	# 	results.append(d)
+	# pool.close()
+	# pool.join()
 	pickle.dump(open("/data/s1774395/distances", "rb"), results)
 
 
