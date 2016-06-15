@@ -67,7 +67,7 @@ def distances():
 
 	for s in sequence_list:
 		results.append(edit_distance(base_tweet, s))
-
+	results.sort()
 	#
 	# pool = Pool()  # use all CPUs
 	# for tweet, d in pool.imap_unordered(partial(dist_mp, base_tweet), sequence_list[1:]):
