@@ -7,13 +7,14 @@ import numpy as np
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
+conf = SparkConf()\
+    .set("spark.driver.maxResultSize", "0")\
+	.set("spark.driver.memory", "12g")\
+	.set("spark.executor.memory", "12g")\
+	.set("spark.executor.instances", "400")
 
-def load_model():
-	from pyspark.sql import SQLContext
-	sqlContext = SQLContext(sc)
-	lookup = sqlContext.read.parquet('/user/rmusters/2015model99/data').alias("lookup")
-	lookup_bd = sc.broadcast(lookup.rdd.collectAsMap())
-	return lookup_bd
+sc = SparkContext(appName='distances', conf=conf)
+
 
 def write_data(path):
 	import filter
@@ -46,6 +47,12 @@ def write_data(path):
 	res = df.withColumn("id", monotonicallyIncreasingId())
 	res.write.parquet(path, mode="overwrite")
 
+def load_model():
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	lookup = sqlContext.read.parquet('/user/rmusters/2015model99/data').alias("lookup")
+	lookup_bd = sc.broadcast(lookup.rdd.collectAsMap())
+	return lookup_bd
 
 def load_data(path):
 	from pyspark.sql import SQLContext
@@ -76,24 +83,24 @@ def similarity(tweet, other_tweet, model):
 	return float(sum(sims)/len(sims))
 
 
-conf = SparkConf()\
-    .set("spark.driver.maxResultSize", "0")\
-	.set("spark.driver.memory", "12g")\
-	.set("spark.executor.memory", "12g")\
-	.set("spark.executor.instances", "200")
 
-sc = SparkContext(appName='distances', conf=conf)
 
 path = 'hdfs:///user/rmusters/data'
-write_data(path)
+#write_data(path)
 data = load_data(path)
 model = load_model()
 
 tweet = data.take(1)[0].filtered_text
 data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, similarity(tweet, text, model)))
-path =  'hdfs:///user/rmusters/sims'
-df = data_rdd.toDF(["text", "filtered_text", "vectors", "id", "sims"])
-df.write.parquet(path, mode="overwrite")
+logging.info(data_rdd.count())
+
+cluster = data_rdd.filter(lambda (text, filtered_text, vectors, id, similarity): similarity > 0.6)
+logging.info(cluster.count())
+
+def write_sims():
+	path =  'hdfs:///user/rmusters/sims'
+	df = data_rdd.toDF(["text", "filtered_text", "vectors", "id", "sims"])
+	df.write.parquet(path, mode="overwrite")
 
 
 #vectors = data.select("vectors").collect()
@@ -128,9 +135,9 @@ df.write.parquet(path, mode="overwrite")
 ###########################
 #OLD distance function
 # take a tweet
-base = data.take(1)
-# calculate the distance to all other tweets
-data = data.map(lambda line: abs(np.sum(np.subtract(np.asarray(eval(line[1])), np.asarray(eval(base[0][1]))))))
-path =  'hdfs:///user/rmusters/distances.txt'
-data.saveAsTextFile(path)
+# base = data.take(1)
+# # calculate the distance to all other tweets
+# data = data.map(lambda line: abs(np.sum(np.subtract(np.asarray(eval(line[1])), np.asarray(eval(base[0][1]))))))
+# path =  'hdfs:///user/rmusters/distances.txt'
+# data.saveAsTextFile(path)
 
