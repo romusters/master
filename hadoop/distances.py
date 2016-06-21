@@ -84,23 +84,92 @@ def similarity(tweet, other_tweet, model):
 
 
 
+def main():
+	path = 'hdfs:///user/rmusters/data'
+	#write_data(path)
 
-path = 'hdfs:///user/rmusters/data'
-#write_data(path)
-data = load_data(path)
-model = load_model()
+	#load filtered tweets
+	data = load_data(path)
 
-tweet = data.take(1)[0].filtered_text
-data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, similarity(tweet, text, model)))
-logging.info(data_rdd.count())
+	#take a sample, because else it takes to long
+	data = data.sample(False, 0.01)
 
-cluster = data_rdd.filter(lambda (text, filtered_text, vectors, id, similarity): similarity > 0.6)
-logging.info(cluster.count())
+
+	#load w2v model
+	model = load_model()
+
+	tweet = data.take(1)[0].filtered_text
+	#calculate distances from a tweet to the others.
+	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, similarity(tweet, text, model)))
+
+	#
+	logging.info(data_rdd.count())
+
+	cluster = data_rdd.filter(lambda (text, filtered_text, vectors, id, similarity): similarity > 0.6)
+	logging.info(cluster.count())
 
 def write_sims():
 	path =  'hdfs:///user/rmusters/sims'
 	df = data_rdd.toDF(["text", "filtered_text", "vectors", "id", "sims"])
 	df.write.parquet(path, mode="overwrite")
+
+def average_vector(data):
+	from pyspark.sql.functions import col
+	vectors = data.select("vectors").where(col("vectors").isNotNull())
+
+	from pyspark.mllib.linalg import Vectors
+	vectors_v = vectors.map(lambda line: Vectors.dense(line))
+
+	from pyspark.mllib.stat import Statistics
+	summary = Statistics.colStats(vectors_v)
+	mean = summary.mean()
+	logger.info(mean)
+	return mean
+
+def find_similar_tweet_from_vector():
+	from pyspark import SQLContext
+	sqlContext = SQLContext(sc)
+
+	path = 'hdfs:///user/rmusters/data'
+
+	#load filtered tweets
+	data = sqlContext.read.parquet(path)
+
+	#take a sample, because else it takes to long
+	data = data.sample(False, 0.01)
+	data.persist()
+
+	vector = average_vector(data)
+
+	#calculate distances from a tweet to the others.
+	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
+	path =  'hdfs:///user/rmusters/average_tweet_distances'
+	df = data_rdd.toDF("text", "filtered_text", "vectors", "id", "sims")
+	df.sort(df.sims.desc())
+	df.write.parquet(path, mode="overwrite")
+
+def sort():
+	path =  'hdfs:///user/rmusters/sims'
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	data = sqlContext.read.parquet(path)
+	data_sample = data.sample(False, 0.01)
+	data_sample_sort = data_sample.sort(data_sample.sims.desc())
+	df = data_sample_sort.toDF("text", "filtered_text", "vectors", "id", "sims")
+	path = "hdfs:///user/rmusters/data_sample_sort"
+	df.write.parquet(path, mode="overwrite")
+
+def load_sort():
+	#pyspark --packages com.databricks:spark-csv_2.10:1.4.0
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	dist = sqlContext.read.parquet('/user/rmusters/data_sample_sort')
+	dist = dist.select("sims")
+	return dist
+	dist.save("data_sample_sort.csv", "com.databricks.spark.csv", "overwrite")
+	#hdfs dfs -getmerge '/user/rmusters/data_sample_sort.csv' dddd
+	#res = dist.filter(dist.sims > 0.28).filter(dist.sims < 0.29)
+
 
 
 #vectors = data.select("vectors").collect()
@@ -111,15 +180,6 @@ def write_sims():
 
 # assume that tweets with the same topic, have words with the same semantic meaning at the same location
 # take a tweet and calculate the distance to all the other tweets. Be sure to take the tweet with the most words and compare each word.
-
-# res = vectors.take(2)
-#
-# vectors = data.map(lambda line: model.transform(line[0]))
-# model.transform("ik")
-
-# data = sc.textFile(loc).map(lambda line: line.split(",", 1))\
-# 	.map(lambda line: (line[0], eval(line[1].replace('WrappedArray', "").replace("(", "[").replace(")", "]"))))
-
 
 
 
@@ -141,3 +201,7 @@ def write_sims():
 # path =  'hdfs:///user/rmusters/distances.txt'
 # data.saveAsTextFile(path)
 
+if __name__ == "__main__":
+	#main()
+	#sort()
+	find_similar_tweet_from_vector()

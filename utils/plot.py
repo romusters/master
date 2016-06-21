@@ -199,6 +199,36 @@ def plot_occurrences():
 	plt.show()
 
 
+def plot_distances():
+	path = "/home/robert/d.csv"
+	result = []
+	with open(path, 'rb') as csvfile:
+		line = csvfile.readline()
+		while line:
+			result.append(eval(line))
+			line = csvfile.readline()
+	import matplotlib.pyplot as plt
+	fig = plt.figure()
+	ax = fig.add_axes((.1,.4,.8,.5))
+	ax.plot(result)
+	plt.title("Distance from a random tweet to the other tweets.")
+	plt.xlabel("Tweet ID")
+	plt.ylabel("Soft max Cosine similarity")
+	txt =  """The dataset consists of 1% of the first month of 2015.
+	The Word2vec model is trained on all words from the first month of 2015.
+	The output layer of the model is 718.
+	The distance of a randomly chosen tweet is calculated to all the other tweets.
+The distances are sorted and shown as the blue line in the figure above.
+
+The distance between two tweets is calculated as follows:
+Every word from tweet A is compared to a word from tweet B.
+The word with the highest similarity, or distance, is added to the list.
+The list is averaged with the amount of words in tweet B."""
+	fig.text(.1,.1, txt)
+	plt.show()
+
+	return result
+
 if __name__ == "__main__":
 	#main()
 	results_folder = '/home/robert/Dropbox/Master/results/'
@@ -213,4 +243,5 @@ if __name__ == "__main__":
 	#plot_dates_fixed(year, freqs, results_folder)
 	#plot_word_freq('/home/robert/counts_sorted')
 
-	plot_occurrences()
+	#plot_occurrences()
+	plot_distances()
