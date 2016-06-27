@@ -2,7 +2,7 @@ from pyspark import SparkContext, SparkConf, SQLContext
 import logging, sys
 import numpy as np
 
-# spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --master yarn --deploy-mode cluster  master/hadoop/distances.py
+# spark-submit --packages com.databricks:spark-csv_2.10:1.4.0 --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --master yarn --deploy-mode cluster  master/hadoop/distances.py
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -60,8 +60,17 @@ def load_data(path):
 	data = sqlContext.read.parquet(path)
 	return data
 
+def normal_similarity(vectors, vector):
+	import numpy as np
+	try:
+		return float(abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
+	except TypeError:
+		return None
+	except Exception as e:
+		logging.info(e)
 
-def similarity(tweet, other_tweet, model):
+
+def cos_similarity(tweet, other_tweet, model):
 	import numpy
 	sims = []
 	for word in tweet:
@@ -100,7 +109,7 @@ def main():
 
 	tweet = data.take(1)[0].filtered_text
 	#calculate distances from a tweet to the others.
-	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, similarity(tweet, text, model)))
+	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, cos_similarity(tweet, text, model)))
 
 	#
 	logging.info(data_rdd.count())
@@ -142,10 +151,16 @@ def find_similar_tweet_from_vector():
 	vector = average_vector(data)
 
 	#calculate distances from a tweet to the others.
-	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
-	path =  'hdfs:///user/rmusters/average_tweet_distances'
-	df = data_rdd.toDF("text", "filtered_text", "vectors", "id", "sims")
+	data_rdd = data.rdd.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, id, normal_similarity(vectors, vector)))
+
+	df = data_rdd.toDF(["text", "filtered_text", "vectors", "id", "sims"])
+	df = df.sort(df.sims.asc()) #is one column sorted or all columns
+
+	from pyspark.sql.functions import col
+	df = df.where(col("sims").isNotNull())
 	df.sort(df.sims.desc())
+	#df = df.select("sims")
+	path = 'hdfs:///user/rmusters/average_tweet_distances'
 	df.write.parquet(path, mode="overwrite")
 
 def sort():
@@ -160,7 +175,7 @@ def sort():
 	df.write.parquet(path, mode="overwrite")
 
 def load_sort():
-	#pyspark --packages com.databricks:spark-csv_2.10:1.4.0
+	#pyspark --packages com.databricks:spark-csv_2.10:1.4.0 --num-executors 10
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
 	dist = sqlContext.read.parquet('/user/rmusters/data_sample_sort')
@@ -170,6 +185,11 @@ def load_sort():
 	#hdfs dfs -getmerge '/user/rmusters/data_sample_sort.csv' dddd
 	#res = dist.filter(dist.sims > 0.28).filter(dist.sims < 0.29)
 
+def save_dist(df_path, fname):
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	df = sqlContext.read.parquet(df_path)
+	df.save(fname, "com.databricks.spark.csv", "overwrite")
 
 
 #vectors = data.select("vectors").collect()
@@ -204,4 +224,8 @@ def load_sort():
 if __name__ == "__main__":
 	#main()
 	#sort()
+
+	#determine the average vector and calculate distances from it
 	find_similar_tweet_from_vector()
+
+	save_dist("hdfs:///user/rmusters/average_tweet_distances", "normal_distance.csv")

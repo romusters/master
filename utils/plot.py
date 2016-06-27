@@ -199,39 +199,80 @@ def plot_occurrences():
 	plt.show()
 
 
-def plot_distances():
-	path = "/home/robert/d.csv"
-	result = []
+def plot_distances(path, resultsfolder):
+	import csv
+	distances= []
+	tweets = []
 	with open(path, 'rb') as csvfile:
-		line = csvfile.readline()
-		while line:
-			result.append(eval(line))
-			line = csvfile.readline()
+		reader = csv.reader(csvfile, delimiter=',')
+		for row in reader:
+			distances.append(eval(row[4]))
+			tweets.append(row[0])
+
+	#calculate the derivative
+	if 0:
+		dx = 4
+		dy = []
+		for i, e in enumerate(distances):
+			distances[i] = e+1
+		dy = np.convolve([-1,0,0,1], distances)/dx
+
+	#create a mask
+	if 0:
+		cluster = []
+		for i, e in enumerate(dy):
+			if dy[i] == 0:
+				dy[i] = 1
+				cluster.append(tweets[i])
+			else:
+				if len(cluster) < 20:
+					continue
+				print cluster
+				import sys
+				sys.exit(0)
+				dy[i] = 0
+		distances = dy
+
+
 	import matplotlib.pyplot as plt
 	fig = plt.figure()
 	ax = fig.add_axes((.1,.4,.8,.5))
-	ax.plot(result)
-	plt.title("Distance from a random tweet to the other tweets.")
+	ax.plot(distances)
+	plt.title("Distance from an average tweet in data to the other tweets.")
 	plt.xlabel("Tweet ID")
 	plt.ylabel("Soft max Cosine similarity")
-	txt =  """The dataset consists of 1% of the first month of 2015.
-	The Word2vec model is trained on all words from the first month of 2015.
-	The output layer of the model is 718.
-	The distance of a randomly chosen tweet is calculated to all the other tweets.
-The distances are sorted and shown as the blue line in the figure above.
-
-The distance between two tweets is calculated as follows:
-Every word from tweet A is compared to a word from tweet B.
-The word with the highest similarity, or distance, is added to the list.
-The list is averaged with the amount of words in tweet B."""
+	txt =  """The dataset consists of 1% of the first month of 2015. The Word2vec model is trained on all words from the first month of 2015.
+The output layer of the model is 718. The distance of a randomly chosen tweet is calculated to all the other tweets. The distances are sorted and shown as the blue line in the figure above.
+The distance between two tweets is calculated as follows: Every word from tweet A is compared to a word from tweet B.
+The word with the highest similarity, or distance, is added to the list. The list is averaged with the amount of words in tweet B."""
 	fig.text(.1,.1, txt)
+	plt.savefig(results_folder + "average_tweet_distance_w2v.png")
 	plt.show()
 
 	return result
 
+def plot_kmeans_for_w2v(path):
+	distances = []
+	fname = "kmeans_for_w2v"
+	with open(path + fname) as f:
+		for line in f:
+			line = line.rstrip('\n')
+			line = line .split("&")
+			distances.append(eval(line[1]))
+	import matplotlib.pyplot as plt
+	plt.plot(distances)
+	plt.title("Kmeans on w2v vectors")
+	plt.xlabel("Number of clusters")
+	plt.ylabel("Within Set Sum of Squared Error")
+	plt.savefig(path + fname + ".png")
+	plt.show()
+	print distances
+
 if __name__ == "__main__":
 	#main()
 	results_folder = '/home/robert/Dropbox/Master/results/'
+	results_folder = '/home/cluster/Dropbox/Master/results/'
+	plot_kmeans_for_w2v(results_folder)
 	#plot_cpu_scaling()
 	#plot_ram(results_folder)
 	#plot_time(results_folder)
@@ -244,4 +285,5 @@ if __name__ == "__main__":
 	#plot_word_freq('/home/robert/counts_sorted')
 
 	#plot_occurrences()
-	plot_distances()
+	path = 	"/home/cluster/nd.csv"
+	plot_distances(path, results_folder)
