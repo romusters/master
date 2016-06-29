@@ -1,4 +1,5 @@
 path = "/home/cluster/Dropbox/Master/results/geovalidate_checked_all_user_coordinates/"
+path = "/home/robert/Dropbox/Master/results/geovalidate_checked_all_user_coordinates/"
 import os
 print os.listdir(path)
 
@@ -16,6 +17,10 @@ for file in os.listdir(path):
 		n_coordinates_found.append(eval(lines[5]))
 		followers_coordinates.append(eval(lines[7]))
 		users_coordinates.append(eval(lines[9]))
+		# try:
+		# 	print lines[10] #9 people disabled geolocation settings
+		# except:
+		# 	continue
 
 # print users_coordinates
 # print follower_length
@@ -31,3 +36,7 @@ print follower_length
 print n_coordinates_found
 		# for line in f:
 		# 	print line
+
+import results
+results.ratio(follower_length, n_coordinates_found)
+results.test(followers_coordinates, users_coordinates)

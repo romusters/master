@@ -268,11 +268,22 @@ def plot_kmeans_for_w2v(path):
 	plt.show()
 	print distances
 
+def plot_geo_distances():
+	import matplotlib.pyplot as plt
+	normal_distances = [2393, 2944, 15993, 21772, 31569, 36331, 56356, 64402, 82800, 100519, 110708, 147478, 157583, 235925, 256514, 405028, 437401, 636586, 1458614, 2575768, 3016883, 3894907, 5428058, 5533571, 5719402, 5820953, 6195934, 6624939, 6668912, 6687665, 6721412, 6758942, 6811755]
+	dbscan_distances = [3655, 3727, 111539, 111575, 111606, 111691, 111705, 218346, 218429, 218465, 218470, 218490, 218612, 219833, 219871, 219953, 220169, 220169, 220255, 220483, 220593, 220972, 343756, 345028, 345358, 348025, 348118, 348446, 348525, 350793, 351421, 351465, 351556, 351562, 352276, 352566, 352615, 352881, 457393, 457393, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755]
+
+	plt.plot(normal_distances, label="normal distances")
+	plt.plot(dbscan_distances, label="dbscan_distances")
+	plt.legend()
+	plt.xlabel()
+	plt.show()
+
 if __name__ == "__main__":
 	#main()
 	results_folder = '/home/robert/Dropbox/Master/results/'
 	results_folder = '/home/cluster/Dropbox/Master/results/'
-	plot_kmeans_for_w2v(results_folder)
+	#plot_kmeans_for_w2v(results_folder)
 	#plot_cpu_scaling()
 	#plot_ram(results_folder)
 	#plot_time(results_folder)
@@ -287,3 +298,6 @@ if __name__ == "__main__":
 	#plot_occurrences()
 	path = 	"/home/cluster/nd.csv"
 	#plot_distances(path, results_folder)
+
+
+	plot_geo_distances()

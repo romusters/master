@@ -67,17 +67,17 @@ def train_model():
 	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text)), id))
 	logger.info("bag of words data")
 	#could it be that the densevector reduce the vocabsize?
-	vectors = data.toDF(["text", "filtered_text", "vectors", "id"]).select("vectors").collect()
-	logger.info(len(vectors[0]))
+	#vectors = data.toDF(["text", "filtered_text", "vectors", "id"]).select("vectors").collect()
+	#logger.info(len(vectors[0]))
 
 	corpus = data.map(lambda (text, filtered_text, vector, id): [id, vector])
-	corpus_vectors = corpus.toDF(["idx", "vector"]).select("vector").collect()
-	logger.info(len(corpus_vectors[0]))
-
+	#corpus_vectors = corpus.toDF(["idx", "vector"]).select("vector").collect()
+	#logger.info(len(corpus_vectors[0]))
+	logger.info("Training the lda model")
 	ldaModel = LDA.train(corpus, k=100)
 	logger.info(ldaModel.vocabSize())
-	logger.info(ldaModel.describeTopics())
-	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel')
+	#logger.info(ldaModel.describeTopics())
+	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel2')
 
 def load_model():
 	from pyspark.mllib.clustering import LDA, LDAModel

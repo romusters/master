@@ -87,13 +87,15 @@ def kmeans_bow():
 	logging.info(len(data.take(1)))
 
 	for n_clusters in range(100,150,1):
+		logger.info("Cluster amount is:"  + str(n_clusters))
 		# Build the model (cluster the data)
 		clusters = KMeans.train(data, n_clusters, maxIterations=10, runs=10, initializationMode="random")
 
 		# Evaluate clustering by computing Within Set Sum of Squared Errors
 		def error(point):
 			center = clusters.centers[clusters.predict(point)]
-			return sqrt(sum([x**2 for x in (point - center)]))
+			# http://stackoverflow.com/questions/32977641/index-out-of-range-in-spark-mllib-k-means-with-tfidf-for-text-clutsering
+			return sqrt(sum([x**2 for x in (point.toArray() - center)]))
 
 		WSSSE = data.map(lambda point: error(point)).reduce(lambda x, y: x + y)
 		logger.info("Within Set Sum of Squared Error = " + str(n_clusters) + "&" +  str(WSSSE) + "\\")

@@ -116,6 +116,12 @@ class Utils:
 
 #calculate distance using Vicenty's formula
 def distance(A, B):
+	try:
+		A.reverse()
+		B.reverse()
+	except:
+		return None
+
 	from geopy.distance import vincenty
 	return vincenty(A, B).meters
 

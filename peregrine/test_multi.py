@@ -1,7 +1,4 @@
-
-
-
-
+# used to test how to use multiple cores in Python
 from functools import partial
 from multiprocessing import Pool
 import numpy as np
@@ -16,7 +13,6 @@ def edit_distance(base_tweet, tweet):
 
 def dist_mp(base_tweet, tweet):
 	return tweet, edit_distance(base_tweet, tweet)
-
 
 def main():
 	sequence_list = []
