@@ -1,11 +1,9 @@
 from pyspark.mllib.clustering import KMeans, KMeansModel
 from pyspark import SparkContext, SparkConf
-from numpy import array
 from math import sqrt
 import logging, sys
-import filter
 
-#spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --master yarn --deploy-mode cluster --num-executors 400  master/hadoop/kmeans.py
+#spark-submit --master yarn --deploy-mode cluster --num-executors 400 master/hadoop/kmeans.py
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -77,12 +75,16 @@ def kmeans_bow():
 		for i, v in enumerate(vector):
 			if v >= 1:
 				v_dict[i] = v
+			else:
+				v_dict[i] = 0				#pas dit aan denk ik
 		return v_dict
 
 	from pyspark.mllib.linalg import SparseVector
 	size = len(words)
 	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text)), id))
-
+	data = data.map(lambda (text, filtered_text, vector, id): vector)
+	logging.info(data.take(1))
+	logging.info(len(data.take(1)))
 
 	for n_clusters in range(100,150,1):
 		# Build the model (cluster the data)
@@ -97,10 +99,10 @@ def kmeans_bow():
 		logger.info("Within Set Sum of Squared Error = " + str(n_clusters) + "&" +  str(WSSSE) + "\\")
 
 	# Save and load model
-	#clusters.save(sc, "myModelPath")
+	clusters.save(sc, "/user/rmusters/kmeans_bow")
 	#sameModel = KMeansModel.load(sc, "myModelPath")
 
 
 if __name__ == "__main__":
-	kmeans_w2v()
+	#kmeans_w2v()
 	kmeans_bow()

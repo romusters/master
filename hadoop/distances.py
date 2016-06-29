@@ -63,6 +63,7 @@ def load_data(path):
 def normal_similarity(vectors, vector):
 	import numpy as np
 	try:
+		#HAS abs() to be inside?
 		return float(abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
 	except TypeError:
 		return None

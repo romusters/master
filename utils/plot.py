@@ -286,4 +286,4 @@ if __name__ == "__main__":
 
 	#plot_occurrences()
 	path = 	"/home/cluster/nd.csv"
-	plot_distances(path, results_folder)
+	#plot_distances(path, results_folder)
