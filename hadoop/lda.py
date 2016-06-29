@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 conf = (SparkConf()
 		.set("spark.driver.maxResultSize", "0") \
-		.set("driver-memory", "6g") \
-		.set("executor-memory", "6g") \
-		.set("num-executors", "200"))
+		.set("driver-memory", "20g") \
+		.set("executor-memory", "20g") \
+		.set("num-executors", "400"))
 
 # Larger file
 loc = '/user/rmusters/text/2015/*/*'
