@@ -93,7 +93,6 @@ def cos_similarity(tweet, other_tweet, model):
 	return float(sum(sims)/len(sims))
 
 
-
 def main():
 	path = 'hdfs:///user/rmusters/data'
 	#write_data(path)
@@ -103,7 +102,6 @@ def main():
 
 	#take a sample, because else it takes to long
 	data = data.sample(False, 0.01)
-
 
 	#load w2v model
 	model = load_model()
@@ -193,40 +191,16 @@ def save_dist(df_path, fname):
 	df.save(fname, "com.databricks.spark.csv", "overwrite")
 
 
-#vectors = data.select("vectors").collect()
-
-
-
-
-
 # assume that tweets with the same topic, have words with the same semantic meaning at the same location
 # take a tweet and calculate the distance to all the other tweets. Be sure to take the tweet with the most words and compare each word.
 
 
-
-# Sort of learning vector quantization!
-# present a tweet to the user which is not that far from the original tweet.
-	# if the tweet is correct
-		# construct a prototype
-				# repeat until convergence
-	# if the tweet is not correct, present a tweet which is less far from the original tweet
-		# repeat
-
-
-###########################
-#OLD distance function
-# take a tweet
-# base = data.take(1)
-# # calculate the distance to all other tweets
-# data = data.map(lambda line: abs(np.sum(np.subtract(np.asarray(eval(line[1])), np.asarray(eval(base[0][1]))))))
-# path =  'hdfs:///user/rmusters/distances.txt'
-# data.saveAsTextFile(path)
+#OLD distance function: data = data.map(lambda line: np.sum(abs(np.subtract(np.asarray(eval(line[1])), np.asarray(eval(base[0][1]))))))
+#perhaps abs has to be inside?
 
 if __name__ == "__main__":
 	#main()
 	#sort()
-
 	#determine the average vector and calculate distances from it
 	find_similar_tweet_from_vector()
-
 	save_dist("hdfs:///user/rmusters/average_tweet_distances", "normal_distance.csv")

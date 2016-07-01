@@ -210,7 +210,7 @@ def plot_distances(path, resultsfolder):
 			tweets.append(row[0])
 
 	#calculate the derivative
-	if 0:
+	if 1:
 		dx = 4
 		dy = []
 		for i, e in enumerate(distances):
@@ -218,7 +218,7 @@ def plot_distances(path, resultsfolder):
 		dy = np.convolve([-1,0,0,1], distances)/dx
 
 	#create a mask
-	if 0:
+	if 1:
 		cluster = []
 		for i, e in enumerate(dy):
 			if dy[i] == 0:
@@ -227,26 +227,26 @@ def plot_distances(path, resultsfolder):
 			else:
 				if len(cluster) < 20:
 					continue
-				print cluster
-				import sys
-				sys.exit(0)
+				#print cluster
 				dy[i] = 0
 		distances = dy
 
 
 	import matplotlib.pyplot as plt
-	fig = plt.figure()
+	fig = plt.figure(figsize=(12,8))
 	ax = fig.add_axes((.1,.4,.8,.5))
 	ax.plot(distances)
 	plt.title("Distance from an average tweet in data to the other tweets.")
 	plt.xlabel("Tweet ID")
 	plt.ylabel("Soft max Cosine similarity")
 	txt =  """The dataset consists of 1% of the first month of 2015. The Word2vec model is trained on all words from the first month of 2015.
-The output layer of the model is 718. The distance of a randomly chosen tweet is calculated to all the other tweets. The distances are sorted and shown as the blue line in the figure above.
+The output layer of the model is 718. The distance of a randomly chosen tweet is calculated to all the other tweets.
+The distances are sorted and shown as the blue line in the figure above.
 The distance between two tweets is calculated as follows: Every word from tweet A is compared to a word from tweet B.
 The word with the highest similarity, or distance, is added to the list. The list is averaged with the amount of words in tweet B."""
 	fig.text(.1,.1, txt)
-	plt.savefig(results_folder + "average_tweet_distance_w2v.png")
+	plt.savefig(results_folder + "average_tweet_distance_w2v_derivative_mask.png")
+	#plt.savefig(results_folder + "average_tweet_distance_w2v.png")
 	plt.show()
 
 	return result
@@ -268,16 +268,6 @@ def plot_kmeans_for_w2v(path):
 	plt.show()
 	print distances
 
-def plot_geo_distances():
-	import matplotlib.pyplot as plt
-	normal_distances = [2393, 2944, 15993, 21772, 31569, 36331, 56356, 64402, 82800, 100519, 110708, 147478, 157583, 235925, 256514, 405028, 437401, 636586, 1458614, 2575768, 3016883, 3894907, 5428058, 5533571, 5719402, 5820953, 6195934, 6624939, 6668912, 6687665, 6721412, 6758942, 6811755]
-	dbscan_distances = [3655, 3727, 111539, 111575, 111606, 111691, 111705, 218346, 218429, 218465, 218470, 218490, 218612, 219833, 219871, 219953, 220169, 220169, 220255, 220483, 220593, 220972, 343756, 345028, 345358, 348025, 348118, 348446, 348525, 350793, 351421, 351465, 351556, 351562, 352276, 352566, 352615, 352881, 457393, 457393, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755, 1560755]
-
-	plt.plot(normal_distances, label="normal distances")
-	plt.plot(dbscan_distances, label="dbscan_distances")
-	plt.legend()
-	plt.xlabel()
-	plt.show()
 
 if __name__ == "__main__":
 	#main()
@@ -297,7 +287,4 @@ if __name__ == "__main__":
 
 	#plot_occurrences()
 	path = 	"/home/cluster/nd.csv"
-	#plot_distances(path, results_folder)
-
-
-	plot_geo_distances()
+	plot_distances(path, results_folder)

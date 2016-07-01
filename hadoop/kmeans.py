@@ -3,7 +3,7 @@ from pyspark import SparkContext, SparkConf
 from math import sqrt
 import logging, sys
 
-#spark-submit --master yarn --deploy-mode cluster --num-executors 400 master/hadoop/kmeans.py
+#spark-submit --master yarn --deploy-mode cluster master/hadoop/kmeans.py
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 conf = (SparkConf()
     .set("spark.driver.maxResultSize", "0")\
-	.set("driver-memory", "50g")\
-	.set("executor-memory", "6g")\
-	.set("num-executors", "400"))
+	.set("spark.driver.memory", "50g")\
+	.set("spark.executor.memory", "20g")\
+	.set("spark.executors.instances", "400"))
 
 
 def kmeans_w2v():
@@ -86,7 +86,7 @@ def kmeans_bow():
 	logging.info(data.take(1))
 	logging.info(len(data.take(1)))
 
-	for n_clusters in range(100,150,1):
+	for n_clusters in range(111,150,1):
 		logger.info("Cluster amount is:"  + str(n_clusters))
 		# Build the model (cluster the data)
 		clusters = KMeans.train(data, n_clusters, maxIterations=10, runs=10, initializationMode="random")

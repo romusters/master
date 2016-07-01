@@ -45,19 +45,7 @@ class Utils:
 
 	def getFriends(self, user):
 		import tweepy
-		#Method 1
-		#user = self.api.get_user(user, count=21)
 
-		#Method 2
-		#return self.api.followers_ids()
-
-		#Method 3
-		# followers = []
-		# for follower in tweepy.Cursor(self.api.followers).items():
-		# 	followers.append(follower)
-		# return followers
-
-		#Method 4
 		ids = []
 		for page in tweepy.Cursor(self.api.followers_ids, id=user).pages():
 			ids.extend(page)
@@ -65,26 +53,16 @@ class Utils:
 		#previously was 100
 		if len(ids) > 1000:
 			return False, False
-		# screen_names = [user.screen_name for user in self.api.lookup_users(user_ids=ids)]
-		# print screen_names
 		friends = []
 		idx = 0
 		idxCnt = 1
 		for id in ids:
 			friend = self.api.get_user(id)
 			friends.append(friend)
-			# idx += 1
-			# if idx > 148:
-			# 	print "sleep " + str(idxCnt*148) + " / " + str(len(ids))
-			# 	idxCnt += 1
-			# 	import time
-			# 	time.sleep(16*60)
-			# 	idx = 0
 		return friends, ids
 
 	def getCoordinate(self, user):
 		data = self.api.get_user(user)
-		# if data['geo_enabled']:
 		try:
 			return data.__getstate__()['status'].__getstate__()['coordinates']['coordinates']
 		except:
@@ -289,7 +267,6 @@ def getDates(dir):
 	import os
 	import json
 
-
 	topdir = os.listdir(dir)
 	topdir.sort()
 	for middir in topdir:
@@ -312,7 +289,6 @@ def getDates(dir):
 				except Exception, err:
 					import traceback
 					traceback.print_exc()
-
 
 
 def getSpecificData(dir, value):
@@ -353,8 +329,6 @@ def loadAllData(fdir, value=None, filter=False, save=False):
 	import os
 	import pickle
 	import json
-	#dirs = os.listdir(fdir)
-	#for dir in dirs:
 	files = os.listdir(fdir)
 
 	try:
@@ -593,8 +567,6 @@ def remove_username_shallow_from_textfiles(dir):
 			g.write(" ".join(line.split()[1:]) + "\n")
 		f.close()
 		g.close()
-
-
 
 
 def main():
