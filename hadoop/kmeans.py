@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 conf = (SparkConf()
     .set("spark.driver.maxResultSize", "0")\
 	.set("spark.driver.memory", "50g")\
-	.set("spark.executor.memory", "20g")\
-	.set("spark.executors.instances", "400"))
+	.set("spark.executor.memory", "20g") \
+	.set("spark.executor.cores", "4") \
+	.set("spark.executor.instances", "400"))
 
 
 def kmeans_w2v():
@@ -29,7 +30,7 @@ def kmeans_w2v():
 	from numpy import array
 	parsedData = rddData.map(lambda line: array(line[0]))
 
-	for n_clusters in range(100,150,1):
+	for n_clusters in range(0,150,1):
 		# Build the model (cluster the data)
 		clusters = KMeans.train(parsedData, n_clusters, maxIterations=10, runs=10, initializationMode="random")
 
@@ -45,48 +46,21 @@ def kmeans_w2v():
 	#clusters.save(sc, "myModelPath")
 	#sameModel = KMeansModel.load(sc, "myModelPath")
 
-def kmeans_bow():
+def kmeans_bow(path):
 	sc = SparkContext(appName='kmeans_bow', conf=conf)
 	from pyspark.sql import SQLContext
 
 	sqlContext = SQLContext(sc)
+	data = sqlContext.read.parquet(path + "bow_data").select("vectors")
 
-	model_vectors = sqlContext.read.parquet('/user/rmusters/2015model99/data')
-
-	rdd_words = model_vectors.map(lambda line: line[0])
-	words = rdd_words.collect()  # 15919
-
-	def load_data(path):
-		sqlContext = SQLContext(sc)
-		data = sqlContext.read.parquet(path)
-		return data
-
-	path = 'hdfs:///user/rmusters/data'
-	data = load_data(path)
-	data = data.sample(False, 0.01)
-	data = data.drop("vectors")
-
-	def bow(filtered_text):
-		vector = [0] * len(words)
-		for i, w in enumerate(words):
-			if w in filtered_text:
-				vector[i] = vector[i] + 1
-		v_dict = {}
-		for i, v in enumerate(vector):
-			if v >= 1:
-				v_dict[i] = v
-			else:
-				v_dict[i] = 0				#pas dit aan denk ik
-		return v_dict
-
-	from pyspark.mllib.linalg import SparseVector
-	size = len(words)
-	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text)), id))
-	data = data.map(lambda (text, filtered_text, vector, id): vector)
+	from numpy import array
+	data = data.map(lambda line: line[0])
 	logging.info(data.take(1))
 	logging.info(len(data.take(1)))
 
-	for n_clusters in range(111,150,1):
+
+	clusters = None
+	for n_clusters in range(220,400,20):
 		logger.info("Cluster amount is:"  + str(n_clusters))
 		# Build the model (cluster the data)
 		clusters = KMeans.train(data, n_clusters, maxIterations=10, runs=10, initializationMode="random")
@@ -101,10 +75,46 @@ def kmeans_bow():
 		logger.info("Within Set Sum of Squared Error = " + str(n_clusters) + "&" +  str(WSSSE) + "\\")
 
 	# Save and load model
-	clusters.save(sc, "/user/rmusters/kmeans_bow")
+	clusters.save(sc, path + "bow_data")
 	#sameModel = KMeansModel.load(sc, "myModelPath")
 
+def bow(filtered_text, words):
+	word_dict = {}
+	vector_dict = {}
+	for i, v in enumerate(words):
+		word_dict[v] = i
+		vector_dict[i] = 0
+	for w in filtered_text:
+		if w in words:
+			vector_dict[word_dict[w]] = vector_dict[word_dict[w]]  + 1
+	return vector_dict
+
+def save_bow_data(path):
+	sc = SparkContext(appName='save_bow_data', conf=conf)
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+
+	model_vectors = sqlContext.read.parquet(path + 'threshold20_2015model56/data')
+	rdd_words = model_vectors.map(lambda line: line[0])
+	words = rdd_words.collect()  # 15919
+	size = len(words)
+	print size
+	from pyspark.mllib.linalg import SparseVector
+	data = sqlContext.read.parquet(path + "data_sample")
+	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text, words)), id))
+	df = data.toDF(["text", "filtered_text", "vectors", "id"])
+	df.write.parquet(path + "bow_data", mode="overwrite")
+
+def save_bow_data_csv(path):
+	sc = SparkContext(appName='save_bow_data_csv', conf=conf)
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	data = sqlContext.read.parquet(path + "bow_data")
+	data.write.format('com.databricks.spark.csv').save('bow_data.csv')
 
 if __name__ == "__main__":
+	path = 'hdfs:///user/rmusters/'
 	#kmeans_w2v()
-	kmeans_bow()
+	kmeans_bow(path)
+	#save_bow_data(path)
+	#save_bow_data_csv(path)

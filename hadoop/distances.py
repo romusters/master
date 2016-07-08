@@ -47,6 +47,7 @@ def write_data(path):
 	res = df.withColumn("id", monotonicallyIncreasingId())
 	res.write.parquet(path, mode="overwrite")
 
+#load the word2vec model
 def load_model():
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
@@ -54,6 +55,7 @@ def load_model():
 	lookup_bd = sc.broadcast(lookup.rdd.collectAsMap())
 	return lookup_bd
 
+#load the data
 def load_data(path):
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
@@ -64,7 +66,8 @@ def normal_similarity(vectors, vector):
 	import numpy as np
 	try:
 		#HAS abs() to be inside?
-		return float(abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
+		#return float(abs(np.sum(np.subtract(np.asarray(vectors), np.asarray(vector)))))
+		#Marco said the distance should be:
 	except TypeError:
 		return None
 	except Exception as e:
@@ -121,6 +124,8 @@ def write_sims():
 	df = data_rdd.toDF(["text", "filtered_text", "vectors", "id", "sims"])
 	df.write.parquet(path, mode="overwrite")
 
+#does this make sense? Am I taking the average word here?!
+#Am i using the idea to average w2v vectors per word?!
 def average_vector(data):
 	from pyspark.sql.functions import col
 	vectors = data.select("vectors").where(col("vectors").isNotNull())
