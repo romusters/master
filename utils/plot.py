@@ -253,14 +253,16 @@ The word with the highest similarity, or distance, is added to the list. The lis
 
 def plot_kmeans_for_w2v(path):
 	distances = []
+	xrange = []
 	fname = "kmeans_for_w2v"
 	with open(path + fname) as f:
 		for line in f:
 			line = line.rstrip('\n')
 			line = line .split("&")
 			distances.append(eval(line[1]))
+			xrange.append(eval(line[0]))
 	import matplotlib.pyplot as plt
-	plt.plot(distances)
+	plt.plot(xrange, distances)
 	plt.title("Kmeans on w2v vectors")
 	plt.xlabel("Number of clusters")
 	plt.ylabel("Within Set Sum of Squared Error")
@@ -269,11 +271,31 @@ def plot_kmeans_for_w2v(path):
 	print distances
 
 
+def plot_kmeans_for_lda(path):
+	distances = []
+	xrange = []
+	fname = "kmeans_for_lda"
+	with open(path + fname) as f:
+		for line in f:
+			line = line.rstrip('\n')
+			line = line .split("&")
+			distances.append(eval(line[1]))
+			xrange.append(eval(line[0]))
+	import matplotlib.pyplot as plt
+	plt.plot(xrange, distances)
+	plt.title("Kmeans on LDA vectors")
+	plt.xlabel("Number of clusters")
+	plt.ylabel("Within Set Sum of Squared Error")
+	plt.savefig(path + fname + ".png")
+	plt.show()
+
+
 if __name__ == "__main__":
 	#main()
 	results_folder = '/home/robert/Dropbox/Master/results/'
 	results_folder = '/home/cluster/Dropbox/Master/results/'
-	#plot_kmeans_for_w2v(results_folder)
+	plot_kmeans_for_w2v(results_folder)
+
 	#plot_cpu_scaling()
 	#plot_ram(results_folder)
 	#plot_time(results_folder)
@@ -287,4 +309,6 @@ if __name__ == "__main__":
 
 	#plot_occurrences()
 	path = 	"/home/cluster/nd.csv"
-	plot_distances(path, results_folder)
+	#plot_distances(path, results_folder)
+	path = "/home/cluster/Dropbox/Master/results/"
+	plot_kmeans_for_lda(path)

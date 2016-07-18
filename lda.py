@@ -84,6 +84,18 @@ def main():
 	import lda
 	lda.LDA(data, scipy.sparse.coo_matrix(features), len(data), len(bow), bow)
 
+def lda():
+	#load data
+	import csv
+	path = "/media/cluster/dataThesis/data_sample.csv"
+	filtered_text = []
+	vectors = []
+	with open(path, 'rb') as csvfile:
+		rows = csv.reader(csvfile, delimiter=',')
+		for row in rows:
+			dict[row[0]] = eval(row[1].replace('WrappedArray', "").replace("(", "[").replace(")", "]"))
+	print dict.keys()
 
 if __name__ == "__main__":
-	main()
+	#main()
+	lda()

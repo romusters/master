@@ -24,7 +24,7 @@ conf = (SparkConf()
 	.set("spark.executor.memory", "10g")\
 	.set("spark.executor.instances", "50")\
 	.set("spark.executor.cores", "4")\
-	.set("spark.rpc.askTimeout", "12000"))
+	.set("spark.rpc.askTimeout", "120000"))
 
 sc = SparkContext(appName='Word2Vec', conf=conf)
 sqlContext = SQLContext(sc)
@@ -106,6 +106,9 @@ def save_vectors(path):
 def save_w2v_data():
 	data = sqlContext.read.parquet('hdfs:///user/rmusters/sims')
 	data.write.format('com.databricks.spark.csv').save('w2vdata2.csv')
+
+
+
 
 if __name__ == "__main__":
 	path = '/user/rmusters/threshold20_2015model56'

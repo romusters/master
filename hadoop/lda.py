@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 conf = (SparkConf()\
 		.set("spark.driver.maxResultSize", "0")\
-		.set("spark.driver.memory", "20g")\
-		.set("spark.executor.memory", "20g")\
-		.set("spark.executor.instances", "400"))
+		.set("spark.driver.memory", "50g")\
+		.set("spark.executor.memory", "50g")\
+		.set("spark.executor.instances", "400")\
+		.set("spark.rpc.askTimeout", "120000"))
 
 # Larger file
 loc = '/user/rmusters/text/2015/*/*'
@@ -25,49 +26,29 @@ sqlContext = SQLContext(sc)
 
 
 def train_model():
-
-	model_vectors = sqlContext.read.parquet('/user/rmusters/2015model99/data')
+	model_vectors = sqlContext.read.parquet('/user/rmusters/threshold20_2015model56/data')
 	logger.info("model loaded")
+
 	rdd_words = model_vectors.map(lambda line: line[0])
-	words = rdd_words.collect() #15919
-	logger.info("words collected")
+	# words = rdd_words.collect() #15919
+	logger.info("words collected: ", int(rdd_words.count()))
 
-
-
-	path = 'hdfs:///user/rmusters/data'
+	#bag of words is used to train LDA
+	path = 'hdfs:///user/rmusters/bow_data'
 	data = load_data(path)
-	logger.info("data loaded")
-	data = data.sample(False, 0.01)
-	logger.info("data sampled")
-	data = data.drop("vectors")
-
-	def bow(filtered_text):
-		vector = [0]*len(words) # perhaps not limit the vector size
-		for i, w in enumerate(words):
-			if w in filtered_text:
-				vector[i] = vector[i]+1
-		v_dict = {}
-		for i, v in enumerate(vector):
-			if v >= 1:
-				v_dict[i] = v
-			else:
-				v_dict[i] = 0 # don't forget this or else the vocabsize and vector size will differ.
-		return v_dict
+	# logger.info("data loaded")
+	# data = data.sample(False, 0.01)
+	# logger.info("data sampled")
 
 	#check if sum of vector is zero 13 times. This indicates the datasample does not contain certain words and thus the sparse vector removes them
-	from pyspark.mllib.linalg import SparseVector
-	size = len(words)
-	#bag of words is used to train LDA
-	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text)), id))
-	logger.info("bag of words data")
 
 	corpus = data.map(lambda (text, filtered_text, vector, id): [id, vector])
 
 	logger.info("Training the lda model")
 	ldaModel = LDA.train(corpus, k=100)
-	logger.info(ldaModel.vocabSize())
+	logger.info("Vocab size is: ", ldaModel.vocabSize())
 
-	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel2')
+	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel')
 
 
 def load_data(path):
@@ -103,7 +84,7 @@ def predict_cluster(tweet, topics, topicsMatrix, word_dict):
 		return int(np.argmax(topics_hits))
 
 
-def predict():
+def predict_old():
 	# probabilities for each word are extraced from each topic. The probabilities for all the words per cluster are summed.
 	# the cluster with the heighest sum wins.
 	ldaModel = load_model()
@@ -127,6 +108,31 @@ def predict():
 	path = 'hdfs:///user/rmusters/lda_cluster_data'
 	df.write.parquet(path, mode="overwrite")
 
+def predict():
+	path = 'hdfs:///user/rmusters/data_sample'
+	data = load_data(path)
+	data = data.drop("vectors")
+
+	ldaModel = load_model()
+	topics = ldaModel.describeTopics()  # every topics is a vector with sorted probabilities and their indices.
+	topicsMatrix = ldaModel.topicsMatrix()
+
+	# make a dictionary containing the word and their index
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	model_vectors = sqlContext.read.parquet('/user/rmusters/2015model99/data')
+	# logger.info("model loaded")
+	rdd_words = model_vectors.map(lambda line: line[0])
+	words = rdd_words.collect()  # 15919
+	word_dict = {}
+	for i, w in enumerate(words):
+		word_dict[w] = i
+
+	data_cluster = data.map(lambda (text, filtered_text, id): (text, filtered_text, id, predict_cluster(filtered_text, topics, topicsMatrix, word_dict)))
+	df = data_cluster.toDF(["text", "filtered_text", "id", "cluster"])
+	path = 'hdfs:///user/rmusters/lda_cluster_data'
+	df.write.parquet(path, mode="overwrite")
+
 
 def save_lda_data_csv():
 	path = 'hdfs:///user/rmusters/lda_cluster_data'
@@ -137,8 +143,8 @@ def save_lda_data_csv():
 
 if __name__ == "__main__":
 	import logging, sys
-	#train_model()
+	train_model()
 	#model = load_model()
 	#logger.info(model.vocabSize())
 	# predict()
-	save_lda_data_csv()
+	#save_lda_data_csv()
