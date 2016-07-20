@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 conf = (SparkConf()
     .set("spark.driver.maxResultSize", "0")\
 	.set("spark.driver.memory", "50g")\
-	.set("spark.executor.memory", "10g") \
-	.set("spark.executor.cores", "2") \
-	.set("spark.executor.instances", "400")\
+	.set("spark.executor.memory", "2g") \
+	.set("spark.executor.cores", "1") \
+	.set("spark.executor.instances", "50")\
 	.set("spark.rpc.askTimeout", "120000"))
 
 def kmeans_w2v():
@@ -45,7 +45,7 @@ def kmeans_w2v():
 
 	# Save and load model
 	clusters.save(sc, "hdfs:///user/rmusters/kmeans_w2v")
-	#sameModel = KMeansModel.load(sc, "myModelPath")
+
 
 def kmeans_bow(path):
 	sc = SparkContext(appName='kmeans_bow', conf=conf)
@@ -54,7 +54,6 @@ def kmeans_bow(path):
 	sqlContext = SQLContext(sc)
 	data = sqlContext.read.parquet(path + "bow_data").select("vectors")
 
-	from numpy import array
 	data = data.map(lambda line: line[0])
 	logging.info(data.take(1))
 	logging.info(len(data.take(1)))
@@ -76,7 +75,6 @@ def kmeans_bow(path):
 
 	# Save and load model
 	clusters.save(sc, path + "bow_data")
-	#sameModel = KMeansModel.load(sc, "myModelPath")
 
 
 def kmeans_lda():
@@ -91,7 +89,7 @@ def kmeans_lda():
 	data = data.map(lambda line: line[0])
 	#data.write.format('com.databricks.spark.csv').save('lda_doc_topic.csv')
 	clusters = None
-	for n_clusters in range(560, 700, 20):
+	for n_clusters in range(500, 501, 1):
 		# Build the model (cluster the data)
 		clusters = KMeans.train(data, n_clusters, maxIterations=10, runs=10, initializationMode="random")
 
@@ -108,8 +106,9 @@ def kmeans_lda():
 		clusters.save(sc, "/user/rmusters/kmeans_lda")
 
 def kmeans_lda_predict():
+	appName = 'kmeans_lda_predict'
 	from pyspark.mllib.clustering import KMeans, KMeansModel
-	sc = SparkContext(appName='kmeans_lda_predict', conf=conf)
+	sc = SparkContext(appName=appName, conf=conf)
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
 	data = sqlContext.read.parquet("hdfs:///user/rmusters/lda_data")
@@ -117,8 +116,9 @@ def kmeans_lda_predict():
 	model = KMeansModel.load(sc, "hdfs:///user/rmusters/kmeans_lda")
 	data = data.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, model.predict(vectors), id))
 	df = data.toDF(["text", "filtered_text", "vectors", "cluster", "id"])
+	df = df.sort(df.cluster.asc())
 	df.write.parquet("hdfs:///user/rmusters/lda_data_cluster", mode= "overwrite")
-
+	logger.info(appName)
 
 def w2v_predict(vector, model):
 	if vector == None:
@@ -128,7 +128,8 @@ def w2v_predict(vector, model):
 
 
 def kmeans_w2v_predict():
-	sc = SparkContext(appName='kmeans_w2v_predict', conf=conf)
+	appName='kmeans_w2v_predict'
+	sc = SparkContext(appName=appName, conf=conf)
 	from pyspark.sql import SQLContext
 	from pyspark.mllib.clustering import KMeans, KMeansModel
 	sqlContext = SQLContext(sc)
@@ -136,52 +137,14 @@ def kmeans_w2v_predict():
 	df = data.toDF("text", "filtered_text", "mean_vector", "id")
 	df = df.where(df.mean_vector.isNotNull())
 	data = df.rdd
-	# def none(x):
-	# 	if type(x) != NoneType:
-	# 		return True
-	# 	else:
-	# 		return False
-	#
-	# data = data.map(lambda (text, filtered_text, mean_vector, id): (text, filtered_text, str(mean_vector), id))
-	# data = data.filter(lambda (text, filtered_text, mean_vector, id): none(mean_vector))
-
 	model = KMeansModel.load(sc, "hdfs:///user/rmusters/kmeans_w2v")
-	#model.predict(eval(
+
 	data = data.map(lambda (text, filtered_text, mean_vector, id): (text, filtered_text, mean_vector, model.predict(mean_vector), id))
-	df = data.toDF(["text", "filtered_text", "mean_vector", "cluster", "id"])
+	df = data.toDF(["text", "filtered_text", "vectors", "cluster", "id"])
+	df = df.sort(df.cluster.asc())
 	df.write.parquet("hdfs:///user/rmusters/w2v_data_cluster", mode= "overwrite")
+	logger.info(appName)
 
-
-# def kmeans_lda_predict(tweet, topics, topicsMatrix, word_dict):
-# 	sc = SparkContext(appName='kmeans_lda_predict', conf=conf)
-# 	from pyspark.sql import SQLContext
-# 	from pyspark.mllib.clustering import LDA, LDAModel
-# 	sqlContext = SQLContext(sc)
-# 	path = 'hdfs:///user/rmusters/lda_data'
-# 	data = sqlContext.read.parquet(path)
-#
-# 	path = "/user/rmusters/ldaModel2"
-# 	ldaModel = LDAModel.load(sc, path)
-# 	topics = ldaModel.describeTopics()  # every topics is a vector with sorted probabilities and their indices.
-# 	topicsMatrix = ldaModel.topicsMatrix()
-#
-# 	# make a dictionary containing the word and their index
-# 	from pyspark.sql import SQLContext
-# 	sqlContext = SQLContext(sc)
-# 	model_vectors = sqlContext.read.parquet('/user/rmusters/2015model99/data')
-# 	# logger.info("model loaded")
-# 	rdd_words = model_vectors.map(lambda line: line[0])
-# 	words = rdd_words.collect()  # 15919
-# 	word_dict = {}
-# 	for i, w in enumerate(words):
-# 		word_dict[w] = i
-#
-# 	from lda import predict_cluster
-# 	data_cluster = data.map(lambda (text, filtered_text, id):
-# 							(text, filtered_text, predict_cluster(filtered_text, topics, topicsMatrix, word_dict), id))
-# 	df = data_cluster.toDF(["text", "filtered_text", "cluster", "id"])
-# 	path = 'hdfs:///user/rmusters/lda_data_cluster'
-	df.write.parquet(path, mode="overwrite")
 
 
 def bow(filtered_text, words):
@@ -211,18 +174,60 @@ def save_bow_data(path):
 	df = data.toDF(["text", "filtered_text", "vectors", "id"])
 	df.write.parquet(path + "bow_data", mode="overwrite")
 
-def save_bow_data_csv(path):
-	sc = SparkContext(appName='save_bow_data_csv', conf=conf)
+
+def to_csv(paths):
+	appName = "to_csv"
+	sc = SparkContext(appName=appName, conf=conf)
+	for path in paths:
+		from pyspark.sql import SQLContext
+		sqlContext = SQLContext(sc)
+		data = sqlContext.read.parquet(path)
+		data.write.format('com.databricks.spark.csv').save(path + '.csv')
+
+def clusters():
+	import numpy
+	appName = "clusters"
+	sc = SparkContext(appName=appName, conf=conf)
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
-	data = sqlContext.read.parquet(path + "bow_data")
-	data.write.format('com.databricks.spark.csv').save('bow_data.csv')
+	clusters = range(0, 500, 1)
+	random_clusters = list(numpy.random.choice(clusters, 20, replace=False).tolist())
+	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
+	w2v_data = sqlContext.read.parquet(w2v_path)
+	lda_path = "hdfs:///user/rmusters/lda_data_cluster"
+	lda_data = sqlContext.read.parquet(lda_path)
+
+	for i in random_clusters:
+		d = w2v_data.where(w2v_data.cluster == i)
+		#d.write.format('com.databricks.spark.csv').save(w2v_path + "_" + str(i) + '.csv')
+		d = d.take(20)
+		ids = []
+		for el in d:
+			ids.append(el[4])
+
+		sqlContext.registerDataFrameAsTable(lda_data, "lda_data")
+		if len(ids) != 0:
+			s = ','.join(str(e) for e in ids)
+			q = 'SELECT * FROM lda_data WHERE id IN (' + s + ')'
+			r = sqlContext.sql(q).collect()
+			print r
+		else:
+			print "[]"
+
+	logger.info(appName)
 
 if __name__ == "__main__":
 	path = 'hdfs:///user/rmusters/'
 	#kmeans_w2v()
+	#kmeans_lda()
 	#kmeans_bow(path)
 	#save_bow_data(path)
 	#save_bow_data_csv(path)
 	#kmeans_w2v_predict()
-	kmeans_lda_predict()
+
+	paths = ["hdfs:///user/rmusters/lda_data_cluster", "hdfs:///user/rmusters/w2v_data_cluster"]
+	#to_csv(paths)
+
+	#kmeans_lda_predict()
+
+	clusters()
