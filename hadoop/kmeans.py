@@ -9,46 +9,16 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %
 logger = logging.getLogger(__name__)
 
 
-conf = (SparkConf()
-    .set("spark.driver.maxResultSize", "0")\
-	.set("spark.driver.memory", "50g")\
-	.set("spark.executor.memory", "2g") \
-	.set("spark.executor.cores", "1") \
-	.set("spark.executor.instances", "50")\
-	.set("spark.rpc.askTimeout", "120000"))
-
-def kmeans_w2v():
-	sc = SparkContext(appName='kmeans_w2v', conf=conf)
-	from pyspark.sql import SQLContext
-
-	sqlContext = SQLContext(sc)
-
-	df_path = "hdfs:///user/rmusters/w2v_data"
-	df = sqlContext.read.parquet(df_path)
-	data = df.select("mean_vector")
-	print data.take(1)
-	from numpy import array
-	parsedData = data.map(lambda line: line[0]).filter(lambda line: line is not None)
-	print parsedData.take(1)
-
-	for n_clusters in range(500,700,20):
-		# Build the model (cluster the data)
-		clusters = KMeans.train(parsedData, n_clusters, maxIterations=10, runs=10, initializationMode="random")
-
-		# Evaluate clustering by computing Within Set Sum of Squared Errors
-		def error(point):
-			center = clusters.centers[clusters.predict(point)]
-			return sqrt(sum([x**2 for x in (point - center)]))
-
-		WSSSE = parsedData.map(lambda point: error(point)).reduce(lambda x, y: x + y)
-		logger.info("Within Set Sum of Squared Error = " + str(n_clusters) + "&" +  str(WSSSE) + "\\")
-
-	# Save and load model
-	clusters.save(sc, "hdfs:///user/rmusters/kmeans_w2v")
-
+# conf = (SparkConf()
+#     .set("spark.driver.maxResultSize", "0")\
+# 	.set("spark.driver.memory", "50g")\
+# 	.set("spark.executor.memory", "10g") \
+# 	.set("spark.executor.cores", "2") \
+# 	.set("spark.executor.instances", "10")\
+# 	.set("spark.rpc.askTimeout", "120000"))
 
 def kmeans_bow(path):
-	sc = SparkContext(appName='kmeans_bow', conf=conf)
+	sc = SparkContext(appName='kmeans_bow')
 	from pyspark.sql import SQLContext
 
 	sqlContext = SQLContext(sc)
@@ -77,73 +47,10 @@ def kmeans_bow(path):
 	clusters.save(sc, path + "bow_data")
 
 
-def kmeans_lda():
-	from pyspark.mllib.clustering import KMeans, KMeansModel
-	from pyspark import SparkContext, SparkConf
-	from pyspark.sql import SQLContext
-	sc = SparkContext(appName='kmeans_lda', conf=conf)
-	sqlContext = SQLContext(sc)
-	path = "/user/rmusters/lda_doc_topic"
-	data = sqlContext.read.parquet(path)
-	data = data.select("_2")
-	data = data.map(lambda line: line[0])
-	#data.write.format('com.databricks.spark.csv').save('lda_doc_topic.csv')
-	clusters = None
-	for n_clusters in range(500, 501, 1):
-		# Build the model (cluster the data)
-		clusters = KMeans.train(data, n_clusters, maxIterations=10, runs=10, initializationMode="random")
-
-		# Evaluate clustering by computing Within Set Sum of Squared Errors
-		def error(point):
-			center = clusters.centers[clusters.predict(point)]
-			# http://stackoverflow.com/questions/32977641/index-out-of-range-in-spark-mllib-k-means-with-tfidf-for-text-clutsering
-			return sqrt(sum([x ** 2 for x in (point.toArray() - center)]))
-
-		WSSSE = data.map(lambda point: error(point)).reduce(lambda x, y: x + y)
-		logger.info(str(n_clusters) + "&" + str(WSSSE))
-
-	# Save and load model
-		clusters.save(sc, "/user/rmusters/kmeans_lda")
-
-def kmeans_lda_predict():
-	appName = 'kmeans_lda_predict'
-	from pyspark.mllib.clustering import KMeans, KMeansModel
-	sc = SparkContext(appName=appName, conf=conf)
-	from pyspark.sql import SQLContext
-	sqlContext = SQLContext(sc)
-	data = sqlContext.read.parquet("hdfs:///user/rmusters/lda_data")
-	# data = df.rdd
-	model = KMeansModel.load(sc, "hdfs:///user/rmusters/kmeans_lda")
-	data = data.map(lambda (text, filtered_text, vectors, id): (text, filtered_text, vectors, model.predict(vectors), id))
-	df = data.toDF(["text", "filtered_text", "vectors", "cluster", "id"])
-	df = df.sort(df.cluster.asc())
-	df.write.parquet("hdfs:///user/rmusters/lda_data_cluster", mode= "overwrite")
-	logger.info(appName)
-
-def w2v_predict(vector, model):
-	if vector == None:
-		return None
-	else:
-		return model.predict(vector)
 
 
-def kmeans_w2v_predict():
-	appName='kmeans_w2v_predict'
-	sc = SparkContext(appName=appName, conf=conf)
-	from pyspark.sql import SQLContext
-	from pyspark.mllib.clustering import KMeans, KMeansModel
-	sqlContext = SQLContext(sc)
-	data = sqlContext.read.parquet("hdfs:///user/rmusters/w2v_data")
-	df = data.toDF("text", "filtered_text", "mean_vector", "id")
-	df = df.where(df.mean_vector.isNotNull())
-	data = df.rdd
-	model = KMeansModel.load(sc, "hdfs:///user/rmusters/kmeans_w2v")
 
-	data = data.map(lambda (text, filtered_text, mean_vector, id): (text, filtered_text, mean_vector, model.predict(mean_vector), id))
-	df = data.toDF(["text", "filtered_text", "vectors", "cluster", "id"])
-	df = df.sort(df.cluster.asc())
-	df.write.parquet("hdfs:///user/rmusters/w2v_data_cluster", mode= "overwrite")
-	logger.info(appName)
+
 
 
 
@@ -187,17 +94,23 @@ def to_csv(paths):
 def clusters():
 	import numpy
 	appName = "clusters"
-	sc = SparkContext(appName=appName, conf=conf)
+	sc = SparkContext(appName=appName)
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
 	clusters = range(0, 500, 1)
-	random_clusters = list(numpy.random.choice(clusters, 20, replace=False).tolist())
+
+	import random
+	rand_clust = []
+	for i in range(0, 20, 1):
+		rand_clust.append(random.choice(clusters))
+
+	# random_clusters = list(numpy.random.choice(clusters, 20, replace=False).tolist())
 	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
 	w2v_data = sqlContext.read.parquet(w2v_path)
-	lda_path = "hdfs:///user/rmusters/lda_data_cluster"
+	lda_path = "hdfs:///user/rmusters/lda_data_jan_cluster_merged"
 	lda_data = sqlContext.read.parquet(lda_path)
 
-	for i in random_clusters:
+	for i in rand_clust:
 		d = w2v_data.where(w2v_data.cluster == i)
 		#d.write.format('com.databricks.spark.csv').save(w2v_path + "_" + str(i) + '.csv')
 		d = d.take(20)
@@ -205,21 +118,13 @@ def clusters():
 		for el in d:
 			ids.append(el[4])
 
-		sqlContext.registerDataFrameAsTable(lda_data, "lda_data")
-		if len(ids) != 0:
-			s = ','.join(str(e) for e in ids)
-			q = 'SELECT * FROM lda_data WHERE id IN (' + s + ')'
-			r = sqlContext.sql(q).collect()
-			print r
-		else:
-			print "[]"
+		print lda_data.rdd.filter(lambda x: x.id in ids).collect()
 
 	logger.info(appName)
 
 if __name__ == "__main__":
 	path = 'hdfs:///user/rmusters/'
-	#kmeans_w2v()
-	#kmeans_lda()
+
 	#kmeans_bow(path)
 	#save_bow_data(path)
 	#save_bow_data_csv(path)

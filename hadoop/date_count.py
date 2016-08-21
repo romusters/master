@@ -15,10 +15,7 @@ conf = (SparkConf()
 
 sc = SparkContext(appName='date_count', conf=conf)
 
-
 rdd = sc.textFile(loc)
-
-
 
 def check(date):
 	date_list = date.split()

@@ -38,12 +38,3 @@ def mv_tags(tweet):
 		else:
 			words[i] = stemming.stem(word)
 	return " ".join(words)
-
-
-def test(i):
-	if i>1:
-		print 1
-	elif i>2:
-		print 2
-	else:
-		print 3

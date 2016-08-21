@@ -6,8 +6,9 @@ import logging, sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
-#spark-submit --master yarn --deploy-mode cluster --executor-memory 50g master/hadoop/lda.py
+#spark-submit --master yarn --deploy-mode cluster --executor-memory 2g /home/cluster/master/hadoop/lda.py
 
+#exmem 50g
 conf = (SparkConf()\
 		.set("spark.driver.maxResultSize", "0")\
 		.set("spark.driver.memory", "50g")\
@@ -24,13 +25,13 @@ def train_model():
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
 
-	model_vectors = sqlContext.read.parquet('/user/rmusters/threshold20_2015model56/data')
+	model_vectors = sqlContext.read.parquet('/user/rmusters/jan_threshold20_2015model99/data')
 	logger.info("model loaded")
 	rdd_words = model_vectors.map(lambda line: line[0])
 	words = rdd_words.collect() #15919
 	logger.info("Amount of words collected: %i", len(words))
 
-	path = 'hdfs:///user/rmusters/data_sample'
+	path = 'hdfs:///user/rmusters/data_jan_sample'
 	data = sqlContext.read.parquet(path)
 	# logger.info("data loaded")
 	# data = data.sample(False, 0.01)
@@ -52,9 +53,14 @@ def train_model():
 	#check if sum of vector is zero 13 times. This indicates the datasample does not contain certain words and thus the sparse vector removes them
 	from pyspark.mllib.linalg import SparseVector
 	size = len(words)
+	logger.info("size of words: %i", size)
+
 	#bag of words is used to train LDA
 	data = data.map(lambda (text, filtered_text, id): (text, filtered_text, SparseVector(size, bow(filtered_text)), id))
 	logger.info("bag of words data")
+
+	df = data.toDF(["text", "filtered_text", "vectors", "id"])
+	df.write.parquet("hdfs:///user/rmusters/lda_data_jan", mode="overwrite")
 
 	corpus = data.map(lambda (text, filtered_text, vector, id): [id, vector])
 
@@ -62,7 +68,7 @@ def train_model():
 	ldaModel = LDA.train(corpus, k=500)
 	logger.info("Vocabsize is: %i", ldaModel.vocabSize())
 
-	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel')
+	ldaModel.save(sc, 'hdfs:///user/rmusters/ldaModel_jan')
 	logger.info("model saved")
 
 
@@ -137,14 +143,14 @@ def add_vectors_to_data():
 	sc = SparkContext(appName='add_vectors_to_data', conf=conf)
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
-	data = sqlContext.read.parquet("hdfs:///user/rmusters/data")
-	data = data.drop("vectors")
+	data = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_sample")
+	# data = data.drop("vectors")
 	lda_data = sqlContext.read.parquet("hdfs:///user/rmusters/lda_doc_topic")
 	joined = lda_data.join(data, data.id==lda_data._1)
 	joined = joined.drop("_1")
 	joined = joined.map(lambda (_2, text, filtered_text, id): (text, filtered_text, _2, id))
 	df = joined.toDF(["text", "filtered_text", "vectors", "id"])
-	df.write.parquet("hdfs:///user/rmusters/lda_data", mode="overwrite")
+	df.write.parquet("hdfs:///user/rmusters/lda_data_jan", mode="overwrite")
 
 if __name__ == "__main__":
 	import logging, sys
