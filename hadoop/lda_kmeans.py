@@ -2,6 +2,7 @@ from pyspark.mllib.clustering import KMeans, KMeansModel
 from pyspark import SparkContext, SparkConf
 from math import sqrt
 import logging, sys
+from pyspark.mllib.clustering import BisectingKMeans, BisectingKMeansModel
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ def kmeans_lda():
 	sqlContext = SQLContext(sc)
 	path = "/user/rmusters/lda_doc_topic"
 	data = sqlContext.read.parquet(path)
-	data = data.select("_2")
+	data = data.select("_2").rdd
 	data = data.map(lambda line: line[0])
 	#data.write.format('com.databricks.spark.csv').save('lda_doc_topic.csv')
 	clusters = None
@@ -42,6 +43,7 @@ def kmeans_lda():
 def kmeans_lda_predict():
 	appName = 'kmeans_lda_predict'
 	from pyspark.mllib.clustering import KMeans, KMeansModel
+	from pyspark.mllib.clustering import BisectingKMeans, BisectingKMeansModel
 	sc = SparkContext(appName=appName)
 	from pyspark.sql import SQLContext
 	sqlContext = SQLContext(sc)
@@ -51,7 +53,9 @@ def kmeans_lda_predict():
 	data = data.map(lambda (id, vectors): (id, vectors, model.predict(vectors)))
 	df = data.toDF(["id", "vectors", "cluster"])
 	df = df.sort(df.cluster.asc())
-	df.write.parquet("hdfs:///user/rmusters/lda_data_cluster", mode= "overwrite")
+	# df.write.parquet("hdfs:///user/rmusters/lda_data_cluster", mode= "overwrite")
+	df.write.parquet("hdfs:///user/rmusters/lda_data_cluster", mode="overwrite")
+
 	logger.info(appName)
 
 def merge_data():
@@ -64,7 +68,7 @@ def merge_data():
 	joined = lda_data.join(data, data.id == lda_data.id)
 	joined = joined.map(lambda (id2, vectors, cluster, text, filtered_text, id): (text, filtered_text, vectors, cluster, id))
 	df = joined.toDF(["text", "filtered_text", "vectors", "cluster", "id"])
-	df.write.parquet("hdfs:///user/rmusters/lda_data_jan_cluster_merged", mode="overwrite")
+	df.write.parquet("hdfs:///user/rmusters/blda_data_jan_cluster_merged", mode="overwrite")
 
 
 
@@ -76,7 +80,7 @@ def test():
 	from pyspark.sql.functions import col
 	vectors = data.select("vectors").where(col("vectors").isNotNull())
 	print vectors.count()
-#kmeans_lda()
-# kmeans_lda_predict()
+kmeans_lda()
+kmeans_lda_predict()
 # test()
 merge_data()

@@ -106,6 +106,8 @@ def clusters():
 	for i in range(0, 20, 1):
 		rand_clust.append(random.choice(clusters))
 
+	#make the random clusters unique
+	rand_clust = set(rand_clust)
 
 	# random_clusters = list(numpy.random.choice(clusters, 20, replace=False).tolist())
 	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
@@ -116,8 +118,8 @@ def clusters():
 	#from the 20 random clusters, find the w2v data.
 	for i in rand_clust:
 		print "cluster number: %i", i
-		d = w2v_data.where(w2v_data.cluster == i)
-		#d.write.format('com.databricks.spark.csv').save(w2v_path + "_" + str(i) + '.csv')
+		d = w2v_data.where(w2v_data.cluster == i).drop("vectors")
+		d.write.format('com.databricks.spark.csv').save(w2v_path + "_" + str(i) + '.csv')
 
 		#take 20 datapoints, which are going to be labeled.
 		d = d.take(20)
@@ -125,15 +127,34 @@ def clusters():
 		#collect the ids which are used to find the LDA clusters.
 		ids = []
 		for el in d:
-			ids.append(el[4])
+			ids.append(el[3])
 
-		lda_data.rdd.filter(lambda x: x.id in ids)
-		data = lda_data.toDF("text", "filtered_text", "vectors", "cluster", "id").select("cluster").map(lambda x: x[0]).collect()
+		lda_data_tmp = lda_data.rdd.filter(lambda x: x.id in ids)
+
+		data = lda_data_tmp.toDF(["text", "filtered_text", "vectors", "cluster", "id"]).drop("vectors")
+		data.write.format('com.databricks.spark.csv').save(lda_path + "_" + str(i) + '.csv')
+		data = data.select("cluster").map(lambda x: x[0]).collect()
 		print data
-		sys.exit(0)
 		# lda_data.rdd.filter(lambda x: x.id in ids).collect()
 
 	logger.info(appName)
+
+def get_cluster_size():
+	appName = "clusters sizes"
+	sc = SparkContext(appName=appName)
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+
+	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
+	w2v_data = sqlContext.read.parquet(w2v_path)
+	lda_path = "hdfs:///user/rmusters/lda_data_jan_cluster_merged"
+	lda_data = sqlContext.read.parquet(lda_path)
+
+	# choose 20 clusters
+	clusters = range(0, 500, 1)
+	for i in clusters:
+		print "%i, %i, %i" % (i, w2v_data.where(w2v_data.cluster == i).count(), lda_data.where(lda_data.cluster == i).count(),)
+
 
 def save_to_csv():
 	appName = "save_to_csv"
@@ -161,5 +182,7 @@ if __name__ == "__main__":
 	#kmeans_lda_predict()
 
 	clusters()
-
+	#get_cluster_size()
 	#save_to_csv()
+
+	# plot_cluster_freqs()
