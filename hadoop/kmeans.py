@@ -168,6 +168,42 @@ def save_to_csv():
 	lda_data = sqlContext.read.parquet(lda_path)
 	lda_data.write.format('com.databricks.spark.csv').save(lda_path + ".csv")
 
+
+def get_cluster_vectors():
+	appName = "cluster vectors"
+	sc = SparkContext(appName=appName)
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	clusters = [8, 16, 111, 140, 189, 190, 231, 235, 253, 263, 340, 353, 362, 366, 412, 433, 441, 458, 497]
+	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
+	w2v_data = sqlContext.read.parquet(w2v_path)
+	lda_path = "hdfs:///user/rmusters/bisecting_lda_data_jan_cluster_merged"
+	lda_data = sqlContext.read.parquet(lda_path)
+	for cluster in clusters:
+		print "Cluster number is: %i", cluster
+
+		d = w2v_data.where(w2v_data.cluster == cluster)
+		print "Cluster member amount is: %i", d.count()
+		d.write.format('com.databricks.spark.csv').mode('overwrite').save(w2v_path + "_" + str(cluster) + '_vectors.csv')
+
+		e = lda_data.where(lda_data.cluster == cluster)
+		print "Cluster member amount is: %i", e.count()
+		e.write.format("com.databricks.spark.csv").mode('overwrite').save(lda_path + "_" + str(cluster) + '_vectors.csv')
+
+
+def get_vectors_sample():
+	appName = "cluster vectors sample"
+	sc = SparkContext(appName=appName)
+	from pyspark.sql import SQLContext
+	sqlContext = SQLContext(sc)
+	w2v_path = "hdfs:///user/rmusters/w2v_data_cluster"
+	w2v_data = sqlContext.read.parquet(w2v_path)
+	sample = w2v_data.sample(False, 0.005)
+	sample.write.format('com.databricks.spark.csv').save("hdfs:///user/rmusters/w2v_vectors_sample.csv")
+
+
+
+
 if __name__ == "__main__":
 	path = 'hdfs:///user/rmusters/'
 
@@ -181,8 +217,11 @@ if __name__ == "__main__":
 
 	#kmeans_lda_predict()
 
-	clusters()
+	# clusters()
 	#get_cluster_size()
 	#save_to_csv()
+
+	get_cluster_vectors()
+	# get_vectors_sample()
 
 	# plot_cluster_freqs()
