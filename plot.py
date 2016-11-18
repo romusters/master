@@ -12,6 +12,6 @@ from plotly.graph_objs import Scatter, Figure, Layout
 trace = Scatter(x=x, y=y, mode="markers", marker=dict(color="rgb(0,0,0)"))
 
 data = [trace]
-layout = Layout(title="Insight in to Optics trainging time", xaxis=dict(title="n tweets"), yaxis=dict(title="training time"))
+layout = Layout(title="Insight in to Optics training time", xaxis=dict(title="n tweets"), yaxis=dict(title="training time"))
 fig = Figure(data=data, layout=layout)
 plot(fig)

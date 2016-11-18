@@ -148,50 +148,161 @@ def test2():
 # print X
 # X.to_csv(fname + ".clean", index=None)
 
+# used to only get the tweet and the id to speed up the tweet selection by id procedure
+def data_sample_tweet_id():
+	import pandas as pd
+	data_name = "/media/cluster/data1/data_sample.csv"
+
+	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=1000, usecols=[0, 3],
+						 names=["tweet", "id"])
+	chunk = tweets.get_chunk()
+	while chunk is not None:
+		chunk.index = chunk["id"]
+		chunk["tweet"].to_csv("/media/cluster/data1/data_sample_tweet_id_emb3971.csv", mode="a")
+		chunk = tweets.get_chunk()
+
+
+def data_sample_vector_id():
+	import pandas as pd
+data_name = "/media/cluster/data1/w2v_data_jan.csv"
+
+tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=10, usecols=[2, 3], names=["vector", "id"])
+store = pd.HDFStore(data_name + ".clean.h5")
+chunk = tweets.get_chunk()
+idx = 0
+while chunk is not None:
+	if idx > 2:
+		store.close()
+		break
+	print idx
+	# chunk.index = chunk["id"]
+	chunk["vector"] = chunk["vector"].apply(lambda x: eval(x.replace("WrappedArray(", "[").replace(")", "]").replace("null", "None")))
+	# store.append("data", chunk["vector"])
+	print "Amount of None is: ", 1000-chunk["vector"].dropna().count()
+	vector = chunk["vector"].apply(pd.Series, 1)
+	id = chunk["id"].to_frame()
+	vector["id"] = id#.to_hdf(data_name + ".clean.h5", "data")
+	store.append("data", vector)
+	chunk = tweets.get_chunk()
+	idx+=1
+store.close()
+
+
+def data_sample_tokens_id():
+	import pandas as pd
+	data_name = "/media/cluster/data1/data_sample.csv"
+
+	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=1000, usecols=[1, 3],
+						 names=["token", "id"])
+	chunk = tweets.get_chunk()
+	while chunk is not None:
+		f = lambda vector: vector.replace("WrappedArray(", "[").replace(")", "]")
+		chunk["token"] = chunk["token"].apply(f)
+		chunk.index = chunk["id"]
+		chunk["token"].to_csv("/media/cluster/data1/data_sample_tokens_id.csv", mode="a")
+		chunk = tweets.get_chunk()
+
 
 def AL():
-jan = True
-if jan:
-	emb_name = "/media/cluster/data1/vectors_jan_threshold20_2015model99.csv.clean"
-	embs = pd.read_csv(emb_name)
-	dim = len(embs[1][0])
-else:
-	emb_name = "/media/cluster/data1/vectors_threshold20_2015model56.csv.clean"
-	embs = pd.read_csv(emb_name)
-	dim = len(embs["vectors"][0])
+	# jan = False
+	# f = lambda x: eval(x)
+	# dim = 0
+	# if jan:
+	# 	emb_name = "/media/cluster/data1/vectors_jan_threshold20_2015model99.csv.clean"
+	# 	# embs = pd.read_csv(emb_name)
+	# 	# embs[1] = embs[1].apply(f)
+	# 	# dim = len(embs[1][0])
+	# else:
+	# 	emb_name = "/media/cluster/data1/vectors_threshold20_2015model56.csv.clean"
+	# 	embs = pd.read_csv(emb_name)
+	# 	embs["vectors"] = embs["vectors"].apply(f)
+	# 	dim = len(embs["vectors"][0])
+	# print dim
+	# print embs.keys()
 
-print embs.keys()
+	emb_name = "/media/cluster/data1/vectors_threshold20_2015model56.csv.clean.h5"
+	# get the tweet ids with the highest similarities and ...
+	data_name = "/media/cluster/data1/data_sample.csv"
+	# data = pd.read_csv(data_name + ".clean.sims", header=None, nrows=10000)
+	# sorted = sort_predicted()
+	# yes = data.loc[sorted[sorted[4] > 0.5].index.values.tolist()].sample(20)
+	# yes[2] = yes[2].apply(lambda x: eval(x))
+	# yes[5] = pd.DataFrame(data=[dim*[[0,1]]]).T
+	#
+	# no = data.loc[sorted[(sorted[4] < 0.5) & (sorted[4] > 0.0)].index.values.tolist()].sample(20)
+	# no[2] = no[2].apply(lambda x: eval(x))
+	# no[5] = pd.DataFrame(data=[dim*[[1,0]]]).T
+	# batch = yes.append(no)
 
 
-data_name = "/media/cluster/data1/data_sample.csv"
-data = pd.read_csv(data_name + ".clean.sims", header=None, nrows=10000)
-sorted = sort_predicted()
-yes = data.loc[sorted[sorted[4] > 0.5].index.values.tolist()].sample(20)
-yes[2] = yes[2].apply(lambda x: eval(x))
-yes[5] = pd.DataFrame(data=[dim*[[0,1]]]).T
+	#get the tweet with similarities
+	tweet_sims = pd.read_csv("/media/cluster/data1/data_sample.sims")
+	# get all the indices, the embeddings will be checked on uniqueness
+	yes_idx = tweet_sims[tweet_sims["1"] > 0.60]["0"].values.tolist()
+	print len(yes_idx)
+	# get the embedding belonging to ids
+	store = pd.HDFStore("/media/cluster/data1/data_sample_embs_id.h5")
+	yes_embs = store.select("data", where=store["data"].index.isin(yes_idx))
+	print yes_embs.shape[0]
+	try:
+		yes_embs = yes_embs.drop_duplicates().sample(20)
+	except:
+		yes_embs = yes_embs.drop_duplicates()[0:20]
+	print yes_embs.shape[0]
+	tweets = pd.read_csv("/media/cluster/data1/data_sample_tweet_id.csv", header=None)
+	yes_tweets = tweets[tweets[0].isin(yes_idx)].sample(20)
+	tokens = pd.read_csv("/media/cluster/data1/data_sample_tokens_id.csv", header=None)
 
-no = data.loc[sorted[(sorted[4] < 0.5) & (sorted[4] > 0.0)].index.values.tolist()].sample(20)
-no[2] = no[2].apply(lambda x: eval(x))
-no[5] = pd.DataFrame(data=[dim*[[1,0]]]).T
-batch = yes.append(no)
 
-import tensorflow as tf
-sess = tf.InteractiveSession()
 
-n_classes = 2
-x = tf.placeholder(tf.float32, shape=[None, dim])
-y_ = tf.placeholder(tf.float32, shape=[None, n_classes])
-W = tf.Variable(tf.zeros([dim, n_classes]))
-b = tf.Variable(tf.zeros([n_classes]))
-sess.run(tf.initialize_all_variables())
+	# check if dimension of model and data are the same
+	model_store = pd.HDFStore("/media/cluster/data1/vectors_threshold20_2015model56.csv.clean.h5")
+	dim_model = len(yes_embs["table"]["vectors"][0])
+	dim_data = yes_embs.shape[1]
+	assert(dim_model == dim_data)
+	dim = yes_embs.shape[0]
 
-y = tf.matmul(x, W) + b
+	yes_embs = yes_embs.values.tolist()
+	data = yes_embs
+	labels = []
+	labels.extend([[0,1]]*len(yes_embs))
+	# yes.append(pd.DataFrame(data=[dim * [[0, 1]]]).T)
 
-cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+	no_idx = tweet_sims[tweet_sims["1"] < 0.5]["0"].values.tolist()
+	no_embs = store.select("data", where=store["data"].index.isin(no_idx))
+	try:
+		no_embs = no_embs.drop_duplicates().sample(20)
+	except:
+		no_embs = no_embs.drop_duplicates()[0:20]
+		no_embs = no_embs.values.tolist()
+		labels.extend([[1, 0]] * len(no_embs))
+	data.extend(no_embs)
+	# no.append(pd.DataFrame(data=[dim * [[1, 0]]]).T)
+	# batch = yes.append(no)
 
-train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+	import tensorflow as tf
+	sess = tf.InteractiveSession()
 
-train_step.run(feed_dict={x: batch[2].values[0], y_: batch[5].values[0]})
+	n_classes = 2
+	x = tf.placeholder(tf.float32, shape=[None, dim], name="Input")
+	y_ = tf.placeholder(tf.float32, shape=[None, n_classes], name="Output")
+	W = tf.Variable(tf.zeros([dim, n_classes]))
+	b = tf.Variable(tf.zeros([n_classes]))
+	sess.run(tf.initialize_all_variables())
+
+	y = tf.matmul(x, W) + b
+
+	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+
+	train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+	correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+	correct_prediction.eval(feed_dict={x: data, y_: labels})
+
+	for i in range(3):
+		train_step.run(feed_dict={x: data, y_: labels})
+			# train_step.run(feed_dict={x: batch[2].values.tolist(), y_: batch[5].values.tolist()})
+		print(accuracy.eval(feed_dict={x: data, y_: labels}))
 
 
 def main():
@@ -220,3 +331,63 @@ def main():
 #
 # print cosine_similarity(A, B)
 
+def test_similar_tweets():
+	tweet_sims = pd.read_csv("/media/cluster/data1/data_sample.sims")
+	# get all the indices, the embeddings will be checked on uniqueness
+	yes_idx = tweet_sims[tweet_sims["1"] > 0.60]["0"].values.tolist()
+	print len(yes_idx)
+	# get the embedding belonging to ids
+	store = pd.HDFStore("/media/cluster/data1/data_sample_embs_id.h5")
+	yes_embs = store.select("data", where=store["data"].index.isin(yes_idx))
+	tweets = pd.read_csv("/media/cluster/data1/data_sample_tweet_id.csv", header=None)
+	for i in range(3):
+		print tweets[tweets[0].isin([yes_idx[i]])][1].values.tolist()
+# test_similar_tweets()
+
+def test_embedding_separation():
+	#are these tweets exactly the same?
+	##
+	ids = [103079215880,  515396089413]
+	tweets = pd.read_csv("/media/cluster/data1/data_sample_tweet_id.csv", header=None)
+	tokens = pd.read_csv("/media/cluster/data1/data_sample_tokens_id.csv", header=None)
+	embs_store = pd.HDFStore("/media/cluster/data1/vectors_threshold20_2015model56.csv.clean.h5")
+	store = pd.HDFStore("/media/cluster/data1/data_sample_embs_id.h5")
+	vocab  = embs_store["table"]["words"].values.tolist()
+	for id in ids:
+		tweet = tweets[tweets[0].isin([id])]
+		tweet_tokens = tokens[tokens[0].isin([id])][1].values.tolist()[0].replace("[", "").replace("]", "").replace(" ", "").split(",")
+		print tweet[0]
+		print tweet_tokens
+		print [token if token in vocab else "*" + token + "*" for token in tweet_tokens]
+
+		embs = store.select("data", where=store["data"].index.isin([id]))
+		print embs[range(3)].values.tolist()
+		print "\n"
+
+
+
+	# are the embs in the tweets the same? yes
+	# test_embs = store.select("data", where=store["data"].index.isin(ids))
+def test_correct_mean_embedding():
+	import numpy as np
+	ids = [103079215880, 515396089413]
+	tweets = pd.read_csv("/media/cluster/data1/data_sample_tweet_id.csv", header=None)
+	tokens = pd.read_csv("/media/cluster/data1/data_sample_tokens_id.csv", header=None)
+	embs_store = pd.HDFStore("/media/cluster/data1/vectors_threshold20_2015model56.csv.clean.h5")
+	# embs_store = pd.HDFStore("/media/cluster/data1/vectors_jan_threshold20_2015model99.csv.clean.h5")
+	store = pd.HDFStore("/media/cluster/data1/data_sample_embs_id.h5")
+	vocab = embs_store["table"]["words"].values.tolist()
+	mean_vector = []
+	for id in ids:
+		tweet = tweets[tweets[0].isin([id])]
+		print tweet.values.tolist()
+		tweet_tokens = tokens[tokens[0].isin([id])][1].values.tolist()[0].replace("[", "").replace("]", "").replace(" ","").split(",")
+		for token in tweet_tokens:
+			print token
+			mean_vector.append(embs_store["table"]["vectors"][embs_store["table"]["words"].isin([token])].values.tolist())
+		print np.mean(mean_vector[0], axis=0).tolist()
+		mean_vector = []
+# test_correct_mean_embedding()
+
+def test_similar_embeddings():
+	store = pd.HDFStore("/media/cluster/data1/data_sample_embs_id.h5")
