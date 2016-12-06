@@ -1,8 +1,10 @@
+
+
 from pyspark import SparkContext, SparkConf
 from pyspark.mllib.feature import Word2Vec, HashingTF
 from pyspark.sql import SQLContext
 import logging, sys
-import filter
+# import filter
 
 #spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --packages com.databricks:spark-csv_2.10:1.4.0 --master yarn --executor-memory 20g --deploy-mode cluster  master/hadoop/w2v.py
 #if in yarn mode, all cores are used
@@ -18,7 +20,8 @@ conf = (SparkConf()
 	.set("spark.executor.instances", "10")\
 	.set("spark.executor.cores", "2")\
 	.set("spark.rpc.askTimeout", "120000") \
-	.set("spark.akka.frameSize", "300"))
+	.set("spark.akka.frameSize", "300")\
+	.set("spark.executor.heartbeatInterval", "1200000"))
 
 sc = SparkContext(appName='Word2Vec', conf=conf)
 sqlContext = SQLContext(sc)
@@ -67,6 +70,8 @@ def main():
 
 		model.save(sc, '/user/rmusters/threshold20_2015model' + str(idx))
 
+
+
 def load_model(path):
 	lookup = sqlContext.read.parquet(path + '/data').alias("lookup")
 	lookup_bd = sc.broadcast(lookup.rdd.collectAsMap())
@@ -83,13 +88,32 @@ def average_word_vectors(vectors):
 			vector.append(v)
 	return map(mean, zip(*vector))
 
+
+def mean_slice(slice):
+	try:
+	except RuntimeWarning:
+		return None
+	import numpy as np
+	if len(slice) == 0:
+		print "zero slice found"
+		return None
+	else:
+		return np.mean(slice, axis = 0).tolist()
+
 def average_word_vectors():
 	import numpy as np
-	lookup_bd = load_model('/user/rmusters/jan_threshold20_2015model99')
+	# lookup_bd = load_model('/user/rmusters/jan_threshold20_2015model99')
+	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
 	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
-	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, np.mean([lookup_bd.value.get(w) for w in filtered_text if not lookup_bd.value.get(w) == None], axis=0).tolist(), id))
+	data = data.map(lambda (text, filtered_text, id):  (text, [w for w in filtered_text.split() if not w == None and w != "<STOPWORD>" and w != "<MENTION>" and w !="<URL>"and w in lookup_bd.value.keys()] , id))
+	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, np.mean([lookup_bd.value.get(w) for w in filtered_text ], axis=0).tolist(), id))
+# data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, mean_slice([lookup_bd.value.get(w) for w in filtered_text if w in lookup_bd.value.keys()]), id))
+
 	df = data.toDF(["text", "filtered_text", "vectors", "id"])
-	df.write.parquet("/user/rmusters/w2v_data_jan", mode="overwrite")
+	# df.write.parquet("/user/rmusters/w2v_data_jan", mode="overwrite")
+	# df.write.parquet("/user/rmusters/lambert_w2v_data_jan", mode="overwrite")
+	df.save("lambert_w2v_data_jan3.csv", "com.databricks.spark.csv", "overwrite")
+
 
 def save_vectors(path):
 	#pyspark --packages com.databricks:spark-csv_2.10:1.4.0
@@ -160,7 +184,7 @@ if __name__ == "__main__":
 	#save_w2v_data()
 	average_word_vectors()
 	#train_w2v()
-
+	# lambert()
 
 #from pyspark.mllib.feature import Word2VecModel
 #model = Word2VecModel.load(sc,"word_vec_from_cleaned_query.model")
