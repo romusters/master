@@ -4,9 +4,10 @@ def hopkins(X, id):
 	d = len(X[0]) # kolommen
 	n = len(X) # rijen
 	m = int(0.1 * n)
-
+	import sklearn.preprocessing as pre
+	X = pre.normalize(X)
 	from sklearn.neighbors import NearestNeighbors
-	nbrs = NearestNeighbors(n_neighbors=1, algorithm='brute').fit(X)
+	nbrs = NearestNeighbors(n_neighbors=1, algorithm='brute', metric="cosine").fit(X)
 
 	from random import sample
 	rand_X = sample(range(0, n, 1), m)
@@ -14,11 +15,11 @@ def hopkins(X, id):
 	ujd = []
 	wjd = []
 	for j in range(0, m):
-		u_dist, _ = nbrs.kneighbors(np.random.normal(size=(1, d)).reshape(1, -1), 2, return_distance=True)
+		u_dist, _ = nbrs.kneighbors(pre.normalize(np.random.normal(size=(1, d))).reshape(1, -1), 2, return_distance=True)
 		ujd.append(u_dist[0][1])
 		w_dist, _ = nbrs.kneighbors(X[rand_X[j]].reshape(1, -1), 2, return_distance=True)
 		wjd.append(w_dist[0][1])
-
+	# print ujd, wjd
 	H = sum(ujd)/(sum(ujd)+sum(wjd))
 	hs.append(H)
 
@@ -81,13 +82,33 @@ def get_data(id):
 	X = preprocessing.scale(X)
 	return X, id
 
-clusters = [8, 16, 111, 140, 189, 190, 231]
-#clusters = [235, 253, 263, 340, 353, 362, 366, 412, 433, 441, 458, 497]
-for cluster in clusters:
-	print "id ", cluster
-	print "get data"
-	data, id = get_data(cluster)
-	print "get result"
-	result = hopkins(data, id)
-	print "plot result"
-	plot_hopkins(result, id)
+# clusters = [8, 16, 111, 140, 189, 190, 231]
+# #clusters = [235, 253, 263, 340, 353, 362, 366, 412, 433, 441, 458, 497]
+# for cluster in clusters:
+# 	print "id ", cluster
+# 	print "get data"
+# 	data, id = get_data(cluster)
+# 	print "get result"
+# 	result = hopkins(data, id)
+# 	print "plot result"
+# 	plot_hopkins(result, id)
+
+
+def voetbal_moslim():
+	import csv_utils
+	import numpy as np
+	data = csv_utils.rm_wrappedarray()
+	print hopkins(np.array(data["vectors"].values.tolist()), 0)
+
+# voetbal_moslim()
+
+# import pandas as pd
+# import numpy as np
+# data = pd.HDFStore("/media/cluster/data1/lambert/data_sample_vector_id.clean.h5")["data"]
+# print data.shape
+# sample_size = 5
+# vectors = map(float, np.array(data.sample(sample_size )[range(70)].values.tolist()).ravel())
+# print len(vectors)
+# vectors = np.reshape(vectors, (sample_size , data.shape[1]-1))
+# print vectors
+# hopkins(vectors, 0)

@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import math
+import logging
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 # remove WrappedArray from embeddings from hadoop model
 model_name = "/media/cluster/data1/vectors_threshold20_2015model56.csv.clean"
@@ -88,6 +91,7 @@ def cosine_similarity(v1,v2):
 	return sim
 
 def predict(fname, seed_id):
+	logging.info("Start predicting for " + str(seed_id))
 	import os.path
 	if os.path.isfile("/media/cluster/data1/lambert/lambert_w2v_data_jan_sims_" + str(seed_id) + ".csv"):
 		return
@@ -111,29 +115,6 @@ def predict(fname, seed_id):
 			sims.index=ids.values.tolist()
 			sims.to_csv("/media/cluster/data1/lambert/lambert_w2v_data_jan_sims_" + str(seed_id) + ".csv",  mode='a',header=None)
 			count += 1
-# predict()
-
-
-# def predict():
-# 	print "predict"
-# import pandas as pd
-# fname = "/media/cluster/data1/w2v_data_jan.csv.clean.h5"
-# store = pd.HDFStore(fname)
-# data = store["data"]
-# seed = data.iloc[0]
-#
-# id = int(seed["id"])
-#
-# seed = seed.drop("id").values.tolist()
-#
-# ids = data["id"]
-# data.drop("id", axis=1, inplace=True)
-# print len(data[0])
-# sims = data[range(3971)].apply(lambda x: test(seed, x.values.tolist()))
-#
-# 	sims = sims.to_frame()
-# 	sims["idsdf"] = ids
-# 	sims.to_csv("/media/cluster/data1/w2v_data_jan_sims_" + str(id) + ".csv")
 
 
 

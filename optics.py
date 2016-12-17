@@ -15,7 +15,7 @@ def read_data(id):
 	return np.array(data.tolist())
 
 
-def optics_alg(x, k, distMethod='euclidean'):
+def optics_alg(x, k, distMethod='cosine'): #was euclidean
 	import time
 	tic = time.clock()
 	import numpy as N
@@ -28,7 +28,9 @@ def optics_alg(x, k, distMethod='euclidean'):
 		n == 1
 
 	try:
-		D = H.squareform(H.pdist(x, distMethod))
+		# D = H.squareform(H.pdist(x, distMethod))
+		from scipy.spatial.distance import pdist
+		D = H.squareform(pdist(x, distMethod))
 		distOK = True
 	except:
 		print "squareform or pdist error"
@@ -106,4 +108,11 @@ def main():
 		# ordered_reachabilities = RD[order]
 		# plot_optics(ordered_reachabilities, cluster)
 
-main()
+import pandas as pd
+import numpy as np
+data = pd.HDFStore("/media/cluster/data1/lambert/data_sample_vector_id.clean.h5")["data"]
+vectors = np.array(data.sample(20000)[range(70)].values.tolist())
+RD, CD, order = optics_alg(vectors, 10)
+ordered_reachabilities = RD[order]
+ordered_reachabilities = [ o for o in ordered_reachabilities if o <= 1]
+plot_optics(ordered_reachabilities, 11)
