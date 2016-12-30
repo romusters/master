@@ -25,8 +25,11 @@ def rm_punctuation(s):
 def mv_tags(tweet):
 	words = tweet.split(" ")
 	for i, word in enumerate(words):
+		word = word.lower()
 		if "http" in word:
 			words[i] = "<URL>"
+		elif word[0:2] == "06" and len(word) == 10:
+			words[i] = "<MOBIEL>"
 		elif "@" in word:
 			words[i] = "<MENTION>"
 		elif word in stemming.stopwords:
@@ -36,5 +39,16 @@ def mv_tags(tweet):
 		elif "#" in word:
 			words[i] = word.replace("#", "")
 		else:
-			words[i] = stemming.stem(word)
-	return " ".join(words)
+			# split strings containing numbers and strings in to constituents.
+			import re
+			parts = re.split('(\d+)', words[i])
+			tmp = []
+			for part in parts:
+				if len(part) is not 0:
+					tmp.append(stemming.stem(part))
+			words[i] = tmp
+
+
+			# words[i] = stemming.stem(word)
+	return " ".join([item for sublist in words for item in sublist]) # unravel string into flat list
+	# return " ".join(words)

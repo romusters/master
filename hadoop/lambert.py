@@ -29,8 +29,8 @@ def lambert():
 	max_int_size = sys.maxint
 	print "maximum in integer: ", sys.maxint
 	data = sqlContext.read.parquet('hdfs:///user/rmusters/data_jan').select("filtered_text")
-	print "Amount of tweets: ", data.count()
-	print "Show a line: ", data.take(1)
+	# print "Amount of tweets: ", data.count()
+	# print "Show a line: ", data.take(1)
 
 	# counts = data.flatMap(lambda line: line.filtered_text.split(" ")) \
 	# 	.map(lambda word: (word, 1)) \
@@ -46,7 +46,35 @@ def lambert():
 	# vocab_size = counts.count()
 	# print "Vocabulary size is: ", vocab_size
 
-	inp = data.map(lambda line: line.filtered_text.split())
+	# inp = data.map(lambda line: line.filtered_text.split())
+
+	# from pyspark.ml.feature import RegexTokenizer
+	# reTokenizer = RegexTokenizer(inputCol="filtered_text", outputCol="words")
+	# inp = reTokenizer.transform(data)
+	# inp.select("words").write.parquet("hdfs:///user/rmusters/data_jan_lowercase", mode="overwrite")
+
+	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_lowercase")
+	# inp = inp.map(lambda line: line[0])
+
+	import re
+	def split_number_string(tokens):
+		res = []
+		for token in tokens:
+			token = token.strip()
+			if token[0:2] == "06" and len(token) == 10:
+				res.append("<MOBIEL>")
+			else:
+				parts = re.split('(\d+)',token)#match(r"([a-z]+)([0-9]+)", token, re.I)
+				for part in parts:
+					if part != '':
+						res.append(part)
+					# if parts is None:
+				# 	res.append(token)
+				# else:
+				# 	res.extend(list(parts.groups()))
+		return res
+
+	inp = inp.map(lambda x: split_number_string(x[0]))
 
 	vector_size = 70
 	# vocab_size = vector_size / max_int_size
@@ -71,9 +99,39 @@ def lambert():
 	# 	print "vocabsize for iteration " + str(idx) + " : ", lookup.count()
 
 	word2vec.setMinCount(20)
-	try:
-		model = word2vec.fit(inp)
-	except:
-		model.save(sc, model_name)
+	model = word2vec.fit(inp)
 	model.save(sc, model_name)
-lambert()
+
+
+
+def save_vectors(path):
+	vectors = sqlContext.read.parquet(path + '/data')
+	vectors.save(path + ".csv", "com.databricks.spark.csv")
+
+def save_correct_text():
+	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_lowercase")
+
+	import re
+	def split_number_string(tokens):
+		res = []
+		for token in tokens:
+			token = token.strip()
+			if token[0:2] == "06" and len(token) == 10:
+				res.append("<mobiel>")
+			else:
+				parts = re.split('(\d+)', token)  # match(r"([a-z]+)([0-9]+)", token, re.I)
+				for part in parts:
+					if part != '':
+						res.append(part)
+					# if parts is None:
+					# 	res.append(token)
+					# else:
+					# 	res.extend(list(parts.groups()))
+		return res
+
+	inp = inp.map(lambda x: (x,split_number_string(x[0])))
+	# geen id :( inp.toDF([""]).write.parquet("hdfs:///user/rmusters/data_jan_filtered")
+
+save_correct_text()
+# save_vectors('/user/rmusters/lambert_jan_2015model')
+# lambert()

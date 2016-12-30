@@ -100,13 +100,43 @@ def mean_slice(slice):
 	else:
 		return np.mean(slice, axis = 0).tolist()
 
+import re
+def process(text):
+	tokens = text.split()
+	res = []
+	for token in tokens:
+		token = token.lower()
+		token = token.strip()
+		if token not in ["<stopword>", "<mention>", "<url>", "rt"]:
+			if token[0:2] == "06" and len(token) == 10:
+				res.append("<mobiel>")
+			else:
+				parts = re.split('(\d+)', token)  # match(r"([a-z]+)([0-9]+)", token, re.I)
+				for part in parts:
+					if part != '':
+						res.append(part)
+	return res
+
+def average_word_vectors2():
+	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
+	keys = lookup_bd.value.keys()
+	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
+	data = data.dropna()
+	text = data.select("filtered_text", "id")
+	text = text.map(lambda (filtered_text, id): (filtered_text, process(filtered_text), id))
+	mean_vectors = text.map(lambda (filtered_text, processed, id): (filtered_text, processed, mean_slice([lookup_bd.value.get(w) for w in processed if w in keys and lookup_bd.value.get(w) is not None ]), id))
+	df = mean_vectors.toDF(["pre_processed", "tokens", "vectors", "id"])
+	result = df.select("tokens", "vectors", "id")
+	result.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
+	# data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<URL>"and w in keys] , id))
+
 
 
 def average_word_vectors():
 	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
 	keys = lookup_bd.value.keys()
 	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
-	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<STOPWORD>" and w != "<MENTION>" and w !="<URL>"and w in keys] , id))
+	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<url>"and w in keys] , id))
 	data = data.map(lambda (text, filtered_text, split_text, id):  (text, filtered_text, split_text, mean_slice([lookup_bd.value.get(w) for w in split_text ]), id))
 	df = data.toDF(["text", "filtered_text", "split_text", "vectors", "id"])
 	df.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
@@ -180,8 +210,9 @@ if __name__ == "__main__":
 	#main()
 	#save_vectors(path)
 	#save_w2v_data()
-	average_word_vectors()
-
+	average_word_vectors2()
+	vectors = sqlContext.read.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan")
+	vectors.write.format("com.databricks.spark.csv").mode("overwrite").save("lambert_w2v_data_jan.csv")
 	#train_w2v()
 	# lambert()
 

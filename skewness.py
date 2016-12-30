@@ -10,10 +10,11 @@ def get_skewness():
 def plot_skewness(data):
 	from plotly.offline import init_notebook_mode, plot
 	init_notebook_mode()
-	from plotly.graph_objs import Scatter, Figure, Layout
+	from plotly.graph_objs import Histogram, Scatter, Figure, Layout
 	dim = len(data)
 	data = get_skewness()
-	trace = Scatter(x=data, y=range(dim), mode="markers", marker=dict(color="rgb(0,0,0)"))
+	# trace = Scatter(x=data, y=range(dim), mode="markers", marker=dict(color="rgb(0,0,0)"))
+	trace = Histogram(x=data, xbins=dict(size=0.2))
 
 	data = [trace]
 	layout = Layout(title="Insight into skewness", xaxis=dict(title="Feature"),
