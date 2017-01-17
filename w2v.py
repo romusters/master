@@ -87,7 +87,6 @@ def cosine_similarity(v1,v2):
 		sumxy += x*y
 	sim = sumxy/math.sqrt(sumxx*sumyy)
 	# sim = sumxy/math.sqrt(sumyy)
-
 	return sim
 
 def predict(fname, seed_id):
