@@ -155,26 +155,135 @@ def check_dims(embs):
 	dim = dim_data
 
 
-import w2v
-words = ["voetbal", "racisme", "moslim", "veganisme", "politiek", "seks", "duurzame energie"]
-words = ["moslim"]
-for word in words:
+# import w2v
+# words = ["voetbal", "racisme", "moslim", "veganisme", "politiek", "seks", "duurzame energie"]
+# words = ["moslim"]
+# for word in words:
+#
+# 	# get a topic using a word
+# 	seed_id = get_seed(word)
+# 	import plot
+#
+#
+#
+# 	# create the similarity file corresponding to the topic
+# 	embs_name = "/media/cluster/data1/lambert/data_sample_vector_id.clean.h5"
+# 	# w2v.predict(embs_name, seed_id)
+# 	# raw_input("Press enter to continue...")
+# 	# print "Continuing"
+#
+# 	# plot.plot_sims(seed_id, word)
+#
+# 	# find tweets corresponding to the topic and build a classifier
+# 	threshold = 0.8
+# 	# active_learning(seed_id, threshold)
+# 	# break
 
-	# get a topic using a word
-	seed_id = get_seed(word)
-	import plot
+'''
+Determine which tweet it still about voetbal
+'''
+def threshold_subject(hashtag):
+	import pandas as pd
+	data = pd.read_csv("/media/cluster/data1/lambert/results/" + hashtag + ".csv", header=None, low_memory=False)
+	data = data.dropna()
+	data[2] = data[2].apply(lambda x: float(x))
+	data = data.sort(columns=[2])
+	probs = data[2]
+	t = 0#(max(probs)-min(probs))/2
+	tmp = data[data[2] > t]
+	print tmp.head()[3].values
+	# if probs are large enough to be voetbal, lower t.
+
+	delta = 0.8
+	t = 1
+	occ = 1
+	first = 1
+	count = 0 # if too many annotations done, stop
+	prev_t = 100
+	# assume the list is ordered from voetbal -2 to not voetbal +10 or sth.
+	while True:
+		flag = False
+		inp = int(input())
+		# if probs are too small, thus it is not about footbal, increase the probs until you found voetbal
+		if inp == 0:
+			flag = True
+			while flag:
+
+				print "initial conditions"
+				print t
+				# begin condition,
+				if inp == 0:
+					t = t + 1
+					tmp = data[data[2] > t]
+					print tmp.head()[3].values
+					inp = int(input())
+					count += 1
+				if inp == 1:
+					flag = False
+					tmp = data[data[2] > t]
+					print tmp.head()[3].values
+		# you found football, now decrease the values
+		print t
+		import math
+		count += 1
+		if inp == 1:
+			occ = occ + 1
+			t = t - delta * occ
+			print "you are in voetbal now"
+			flag = True
+			print t
+			while flag:
 
 
+				# great you are still looking at voetbal
+				if inp == 1:
+					count += 1
+					tmp = data[data[2] > t]
+					print tmp.head()[3].values
+					occ = occ + 1
+					t = t-math.pow(delta, occ)
+					print t
 
-	# create the similarity file corresponding to the topic
-	embs_name = "/media/cluster/data1/lambert/data_sample_vector_id.clean.h5"
-	# w2v.predict(embs_name, seed_id)
-	# raw_input("Press enter to continue...")
-	# print "Continuing"
+					inp = int(input())
+				# too bad, you are not looking at voetbal anymore, increase the threshold a bit
+				if inp == 0:
+					count += 1
+					tmp = data[data[2] > t]
+					print tmp.head()[3].values
+					occ = occ + 1
+					t = t + math.pow(delta, occ)
+					print t
 
-	# plot.plot_sims(seed_id, word)
+					inp = int(input())
+				if count > 10: #if too many annotations needed, stop
+					print "too many iterations"
+					flag = 0
+				diff = abs(prev_t -t)
+				if  diff < 0.1: # if difference too small, stop
+					print "difference very small %i", prev_t - t
+					flag = 0
+				prev_t = t
+		tmp = data[data[2] > t]
+		print tmp.head()[3]
+		f = open("/media/cluster/data1/lambert/results/" + hashtag, "w")
+		f.write(str(t))
+		f.close()
+		# t= 3.5
+'''
+Determine tweets which do no contain voetbal but are about voetbal
+'''
+def show_voetbal():
+	import pandas as pd
+	data = pd.read_csv("/media/cluster/data1/lambert/results/voetbal_moslim.csv", header=None, low_memory=False)
+	data = data.dropna()
+	data[2] = data[2].apply(lambda x: float(x))
+	data = data.sort(columns=[2])
+	tweets = data[data[2] > 3.5]
+	print tweets
+	tweets = tweets[~tweets[3].str.contains("voetbal")]
+	print len(tweets.index)
+	print len(data.index)
+	# print tweets
 
-	# find tweets corresponding to the topic and build a classifier
-	threshold = 0.8
-	# active_learning(seed_id, threshold)
-	# break
+# show_voetbal()
+threshold_subject("moslim")

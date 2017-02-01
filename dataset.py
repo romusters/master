@@ -1,8 +1,10 @@
 # creating and manipulating datasets
-
 import pandas as pd
 import numpy as np
+import tensorflow as tf
+
 hashtags = ["voetbal", "moslim", "werk", "economie", "jihad", "seks", "politiek"]
+variables = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 store = pd.HDFStore("/media/cluster/data1/lambert/data1_sample_vector_id.clean.h5")
 
 def create_subject_sets():
@@ -36,164 +38,35 @@ def load_all_data():
 	# trainset.to_hdf("/media/cluster/data1/lambert/data1sets/trainset.h5", "data", format="table")
 	# testset.to_hdf("/media/cluster/data1/lambert/data1sets/testset.h5", "data", format="table")
 
-def onehot(x):
-	tmp = np.zeros(len(hashtags))
-	tmp[x] = 1
-	return tmp
+
+
+
 
 # create_subject_sets()
+import onehot
 
-# dataset = load_all_data()
-import balance_categories
-dataset = balance_categories.load_balanced_data()
-trainset = dataset.sample(frac=0.8)
+def nn():
+	import balance_categories
+	dataset = balance_categories.load_balanced_data()
+	print "dataset"
 
-train_data = np.array(trainset[range(70)].values.tolist())
-train_labels = np.array(trainset["labels"].apply(lambda x: onehot(x)).values.tolist())
-print train_data.shape
-testset = dataset.drop(trainset.index)
-test_data = np.array(testset[range(70)].values.tolist())
-test_labels = np.array(testset["labels"].apply(lambda x: onehot(x)).values.tolist())
-print test_data.shape
-print test_data[0]
-print test_labels[0]
-
-
-
-def test2():
-	import tensorflow as tf
-
-
-	x = tf.placeholder(tf.float32, shape=[None, 70], name="Input")
-	y_ = tf.placeholder(tf.float32, shape=[None, 7], name="Output")
-	t = tf.placeholder(tf.float32, shape=[None, 70], name="TestInput")
-	# y_t = y_ = tf.placeholder(tf.float32, shape=[None, 7], name="TestOutput")
-
-	W = tf.Variable(tf.zeros([70, 7]))
-	b = tf.Variable(tf.zeros([7]))
-
-
-	y = tf.matmul(x, W) + b
-	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
-
-
-
-	l = tf.placeholder(tf.float32, shape=[], name="learning_rate")
-	train_step = tf.train.GradientDescentOptimizer(l).minimize(cross_entropy)
-	prediction = tf.argmax(y, 1)
-	# t_pred = tf.argmax(y, 1)
-	sess = tf.Session()
-	init = tf.initialize_all_variables()
-	sess.run(init)
-
-	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-	for _learning_rate in np.arange(0, 1, 0.1):
-		# acc = accuracy.eval(session=sess, feed_dict={x: test_data, y_: test_labels})
-
-
-		acc_list = []
-		iter = 100
-		size = len(train_data) / iter
-		print "size", size
-		for i in range(iter):
-			print i
-			sess.run(train_step, feed_dict={x: np.array(train_data[i * size: (i + 1) * size]),
-									  y_: np.array(train_labels[i * size: (i + 1) * size]), l: _learning_rate})
-			acc = accuracy.eval(session=sess, feed_dict={x: test_data, y_: test_labels})
-			print acc
-
-		# n_iters = 1000
-		# batch_fraction = len(train_data) / n_iters
-		# for i in range(n_iters):
-		# 	sess.run(train_step, feed_dict={x: np.array(train_data[i * batch_fraction: (i + 1) * batch_fraction]), y_: np.array(train_labels[i * batch_fraction: (i + 1) * batch_fraction]), l: _learning_rate})
-		#
-
-		# pred = prediction.eval(session=sess, feed_dict={x: test_data})
-		#
-		# print pred
-
-		# y_p = tf.argmax(y, 1)
-		# val_accuracy, y_pred = sess.run([accuracy, y_p], feed_dict={x:test_data, y_ :test_labels})
-		#
-		#
-		acc = accuracy.eval(session=sess, feed_dict={x: test_data, y_: test_labels})
-		print acc
-
-		# acc = sess.run(accuracy, feed_dict={x: test_data, y_: test_labels})
-		# print acc
-		# 	# acc, pred = sess.run([accuracy, prediction], feed_dict={x: test_data,  y_: test_labels})
-		# print val_accuracy
-
-
-
-
-
-def test1():
-	import tensorflow as tf
-	sess = tf.InteractiveSession()
-
-	n_classes = len(hashtags)
-	dim = 70
-	x = tf.placeholder(tf.float32, shape=[None, dim], name="Input")
-	y_ = tf.placeholder(tf.float32, shape=[None, n_classes], name="Output")
-	W = tf.Variable(tf.zeros([dim, n_classes]))
-	b = tf.Variable(tf.zeros([n_classes]))
-
-
-	y = tf.matmul(x, W) + b
-	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
-
-	train_step = tf.train.AdagradOptimizer(0.5).minimize(cross_entropy)
-	sess.run(tf.initialize_all_variables())
-	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+	trainset = dataset.sample(frac=0.8, random_state=200)
+	testset = dataset.drop(trainset.index)
+	print "trainset"
 	import numpy as np
-
-	acc_list = []
-	iter = 1000
-	size = len(train_data) / iter
-	print "size", size
-	for i in range(iter):
-		print i
-		train_step.run(feed_dict={x: np.array(train_data[i * size: (i + 1) * size]),
-									  y_: np.array(train_labels[i * size: (i + 1) * size])})
-		acc = accuracy.eval(feed_dict={x: test_data, y_: test_labels})
-		if i %10 == 0:
-			print(acc)
-
-		from sklearn import metrics
-		if i == 30:
-			break
-		print "validation accuracy:", acc
-		prediction = tf.argmax(y, 1)
-
-			# y_true = prediction.eval(feed_dict={x: test_data})
-			# # print y_true
-
-			# print y_true
-			# # print correct_prediction.eval(feed_dict={x: train_data, y_: train_labels})
-			# prediction = tf.argmax(test_data, 1)
-		y_pred = prediction.eval(feed_dict={x: test_data})
-		print y_pred
-		gold = list([list(x).index(1) for x in list(test_labels)])
-			# # print "Precision", metrics.precision_score(y_true, y_pred, average="weighted")
-			# # print "Recall", metrics.recall_score(y_true, y_pred, average="weighted")
-		print "f1_score", metrics.f1_score(gold, y_pred, average="weighted")
-			# # print "confusion_matrix"
-			# # print metrics.confusion_matrix(y_true, y_pred)
-			# # fpr, tpr, tresholds = metrics.roc_curve(y_true, y_pred)
+	train_data = np.array(trainset[range(70)].values.tolist())
+	train_labels = np.array(trainset["labels"].apply(lambda x: onehot(x)).values.tolist())
+	print "testset"
+	test_data = np.array(testset[range(70)].values.tolist())
+	test_labels = np.array(testset["labels"].apply(lambda x: onehot(x)).values.tolist())
+	for t in test_labels:
+		if sum(t) != 1.0:
+			print "broken"
 
 
+	for lr in variables:
+		fname = "/media/cluster/data1/lambert/results/ada_result_" + str(lr)
 
-
-def test3():
-	import numpy as np
-	file = open("/media/cluster/data1/lambert/results/result", "w")
-	for lr in [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4,5]:
-		file = open("/media/cluster/data1/lambert/results/result_acc_adagrad", "a")
-		import tensorflow as tf
 		sess = tf.InteractiveSession()
 
 		n_classes = len(hashtags)
@@ -206,28 +79,32 @@ def test3():
 
 		y = tf.matmul(x, W) + b
 		cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
-
-		train_step = tf.train.GradientDescentOptimizer(lr).minimize(cross_entropy)
+		train_step = tf.train.AdagradOptimizer(lr).minimize(cross_entropy)
 		sess.run(tf.initialize_all_variables())
+
+
 		correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 		import numpy as np
 
-		iter = 1000
-		size = len(train_data) / iter
-		print "size", size
-		max = (0,0, 0, 0, 0)
-		for i in range(iter):
-			train_step.run(feed_dict={x: np.array(train_data[i * size: (i + 1) * size]),
-										  y_: np.array(train_labels[i * size: (i + 1) * size])})
-			acc = accuracy.eval(feed_dict={x: test_data, y_: test_labels})
+		batch_size = 1000
+		batch_count = len(train_data) / batch_size
+		epochs = 8
+		losses = []
+		train_accs = []
+		test_accs = []
+		f1s = []
 
-		# 	if acc > max[0]:
-		# 		max = (acc, i, lr)
-		#
-		# 	# print "validation accuracy:", acc
-		#
-		# print max
+		for i in range(batch_count * epochs):
+			begin = (i % batch_count) * batch_size
+			end = (i % batch_count + 1) * batch_size
+			print begin, end
+			batch_data = np.array(train_data[begin : end])
+			batch_labels = np.array(train_labels[begin : end])
+			_, loss = sess.run([train_step, cross_entropy],feed_dict={x: batch_data, y_: batch_labels})
+
+			test_acc = sess.run(accuracy, feed_dict={x: test_data, y_: test_labels})
+			train_acc = sess.run(accuracy, feed_dict={x: batch_data, y_: batch_labels})
 
 			prediction = tf.argmax(y, 1)
 			y_pred = prediction.eval(feed_dict={x: test_data})
@@ -235,30 +112,245 @@ def test3():
 			for l in test_labels:
 				label = list(l).index(1)
 				gold.append(label)
-			# print len(gold)
-			# print len(y_pred)
-			# print gold
-			# print y_pred
-			# import sys
-			# sys.exit(0)
 
-			# gold = list([list(x).index(1) for x in list(test_labels)])
+
 			from sklearn import metrics
 			f1 = metrics.f1_score(gold, list(y_pred), average="weighted")
-			# print "f1_score", f1
-			print acc
-			if acc > max[0]:
-				max = (acc, i, lr, gold, list(y_pred))
-			# print metrics.confusion_matrix(gold, y_pred)
-		print max
-		file.write(str(max) + "\n")
-		file.close()
+			print loss, train_acc, test_acc, f1
+			losses.append(loss)
+			train_accs.append(train_acc)
+			test_accs.append(test_acc)
+			f1s.append(f1)
+		result = pd.DataFrame({"loss": losses, "train_acc": train_accs, "test_acc": test_accs, "f1": f1s})
+		result.to_csv(fname)
+		sess.close()
+
+# save optimal nn
+def save_nn():
+
+	import balance_categories
+	dataset = balance_categories.load_balanced_data()
+	print "dataset"
+
+	trainset = dataset.sample(frac=0.8, random_state=200)
+	testset = dataset.drop(trainset.index)
+	print "trainset"
+	import numpy as np
+	train_data = np.array(trainset[range(70)].values.tolist())
+	train_labels = np.array(trainset["labels"].apply(lambda x: onehot(x)).values.tolist())
+	print "testset"
+	test_data = np.array(testset[range(70)].values.tolist())
+	test_labels = np.array(testset["labels"].apply(lambda x: onehot(x)).values.tolist())
+	for t in test_labels:
+		if sum(t) != 1.0:
+			print "broken"
 
 
+	sess = tf.InteractiveSession()
+
+	n_classes = len(hashtags)
+	dim = 70
+	x = tf.placeholder(tf.float32, shape=[None, dim], name="Input")
+	y_ = tf.placeholder(tf.float32, shape=[None, n_classes], name="Output")
+	W = tf.Variable(tf.zeros([dim, n_classes]))
+	b = tf.Variable(tf.zeros([n_classes]))
+
+	y = tf.matmul(x, W) + b
+	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+	train_step = tf.train.AdagradOptimizer(1.0).minimize(cross_entropy)
+	sess.run(tf.initialize_all_variables())
+	saver = tf.train.Saver()
+	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+	import numpy as np
+
+	batch_size = 1000
+	batch_count = len(train_data) / batch_size
+	epochs = 8
+	losses = []
+	train_accs = []
+	test_accs = []
+	f1s = []
+
+	for i in range(batch_count * epochs):
+		begin = (i % batch_count) * batch_size
+		end = (i % batch_count + 1) * batch_size
+		print begin, end
+		batch_data = np.array(train_data[begin: end])
+		batch_labels = np.array(train_labels[begin: end])
+		_, loss = sess.run([train_step, cross_entropy], feed_dict={x: batch_data, y_: batch_labels})
+
+		test_acc = sess.run(accuracy, feed_dict={x: test_data, y_: test_labels})
+		train_acc = sess.run(accuracy, feed_dict={x: batch_data, y_: batch_labels})
+
+		prediction = tf.argmax(y, 1)
+		y_pred = prediction.eval(feed_dict={x: test_data})
+		gold = []
+		for l in test_labels:
+			label = list(l).index(1)
+			gold.append(label)
+
+		from sklearn import metrics
+		f1 = metrics.f1_score(gold, list(y_pred), average="weighted")
+		# print loss, train_acc, test_acc, f1
+		losses.append(loss)
+		train_accs.append(train_acc)
+		test_accs.append(test_acc)
+		f1s.append(f1)
+		if i % batch_count == 0:
+			save_path = saver.save(sess, "/media/cluster/data1/lambert/models/model.ckpt", global_step=i)
+	# Save the variables to disk.
 
 
-test3()
+			print "Model saved in file: ", save_path
+	sess.close()
 
-# test2()
 
-# test1()
+def load_model():
+
+
+	sess = tf.InteractiveSession()
+	n_classes = len(hashtags)
+	dim = 70
+	x = tf.placeholder(tf.float32, shape=[None, dim], name="Input")
+	y_ = tf.placeholder(tf.float32, shape=[None, n_classes], name="Output")
+	W = tf.Variable(tf.zeros([dim, n_classes]))
+	b = tf.Variable(tf.zeros([n_classes]))
+
+	y = tf.matmul(x, W) + b
+	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+	train_step = tf.train.AdagradOptimizer(1.0).minimize(cross_entropy)
+	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+	sess.run(tf.initialize_all_variables())
+	saver = tf.train.Saver()
+
+
+	saver.restore(sess,"/media/cluster/data1/lambert/models/model.ckpt-1645")
+	print "Model restored"
+	import balance_categories
+	dataset = balance_categories.load_balanced_data()
+	print "dataset"
+
+	trainset = dataset.sample(frac=0.8, random_state=200)
+	testset = dataset.drop(trainset.index)
+	# testset = testset[testset["labels"] == 0]
+	print "testset"
+
+	test_data = np.array(testset[range(70)].values.tolist())
+	test_labels = np.array(testset["labels"].apply(lambda x: onehot(x)).values.tolist())
+	test_acc = sess.run(accuracy, feed_dict={x: test_data, y_: test_labels})
+	print test_acc
+
+	prediction = tf.argmax(y, 1)
+	y_pred = prediction.eval(feed_dict={x: test_data})
+	gold = []
+	for l in test_labels:
+		label = list(l).index(1)
+		gold.append(label)
+	from sklearn import metrics
+	f1 = metrics.f1_score(gold, list(y_pred), average="weighted")
+	print f1
+
+	for t in test_labels:
+		if sum(t) != 1.0:
+			print "broken"
+
+	def normalize(probs):
+		norms = [min(sublist) for sublist in probs]
+		norm = [prob - norm for prob, norm in zip(probs, norms)]
+		norm = [prob / sum(prob) for prob in norm]
+		return norm
+	probs = y.eval(feed_dict={x: test_data})
+	probs =  normalize(probs)
+	voetbal_probs = [prob[0] for prob in probs]
+	print voetbal_probs[0]
+	tmp = np.argmax(probs, axis=1)
+	print "tmp?"
+	print tmp
+	sorted_ids =  [i for i,e in enumerate(tmp) if e == 0]
+	l = testset.id.values.tolist()
+	tweet_ids = [l[i] for i in sorted_ids]
+	probs_ids = [voetbal_probs[i] for i in sorted_ids]
+	df = pd.DataFrame({"id": tweet_ids, "probs": probs_ids})
+	print tmp
+	tweets = pd.read_csv("/media/cluster/data1/lambert/lambert_w2v_data_jan_tweet_id.csv", names=["id", "text"])
+	merged = pd.merge(df, tweets, on="id")
+	print merged
+	meta_subject =  merged[~merged.text.str.contains("voetbal")].sort(columns=["probs"])
+	meta_subject = meta_subject.drop_duplicates("id")
+	meta_subject.to_csv("/media/cluster/data1/lambert/meta_subject.csv")
+	print meta_subject
+	from plotly.offline import init_notebook_mode, plot
+	init_notebook_mode()
+	from plotly.graph_objs import Scatter, Figure, Layout, Pie
+	trace = Scatter(x=range(len(meta_subject.probs)), y=meta_subject.probs)
+	layout = Layout(title="Sorted probabilities of voetbal versus other subjects", xaxis=dict(title="indices"),
+					yaxis=dict(title="Probabilities"))
+	fig = Figure(data=[trace], layout=layout)
+	plot(fig)
+
+	import sys
+	sys.exit(0)
+	sorted_ids = sorted(range(len(tmp)), key=tmp.__getitem__)
+	l = testset.id.values.tolist()
+	tweet_ids = [l[i] for i in sorted_ids]
+	df = pd.DataFrame({"probs": tmp, "id": tweet_ids})
+	print tmp
+	tweets = pd.read_csv("/media/cluster/data1/lambert/lambert_w2v_data_jan_tweet_id.csv", names=["id", "text"])
+	merged = pd.merge(df, tweets, on="id")
+	print merged.sort(columns=["probs"], ascending=False)
+
+
+	#
+	# norm_probs = normalize(probs)
+	# voetbal = [x[0] for x in norm_probs]
+	# voetbal.sort(reverse=True)
+	# sorted_ids = sorted(range(len(voetbal)), key=voetbal.__getitem__)
+
+	# tweet_ids = [testset.id.iloc[i] for i in sorted_ids]
+	# df = pd.DataFrame({"probs": voetbal, "id": tweet_ids})
+	# print df
+	tweets = pd.read_csv("/media/cluster/data1/lambert/lambert_w2v_data_jan_tweet_id.csv", names=["id", "text"])
+	merged = pd.merge(df, tweets, on="id")
+	print merged
+
+	def plot_voetbal_probs(voetbal):
+
+
+		from plotly.offline import init_notebook_mode, plot
+		init_notebook_mode()
+		from plotly.graph_objs import Scatter, Figure, Layout, Pie
+		traces = []
+		traces.append(Scatter(x=range(len(voetbal)), y=voetbal))
+		for i in range(1, len(hashtags),1):
+			sub_data = [x[i] for x in norm_probs]
+			traces.append(Scatter(x=range(len(sub_data)), y=sub_data))
+		layout = Layout(title="Sorted probabilities of voetbal versus other subjects", xaxis=dict(title="indices"),
+						yaxis=dict(title="Probabilities"))
+		fig = Figure(data=traces, layout=layout)
+		plot(fig)
+		print voetbal
+
+
+	sess.close()
+
+# save_nn()
+# load_model()
+
+
+# nn()
+
+# Add ops to save and restore all the variables.
+# saver = tf.train.Saver()
+
+# # Later, when launching the model
+# with tf.Session() as sess:
+# # Run the init operation.
+#     sess.run(init_op)
+#     ...
+# # Use the model
+#     ...
+# # Save the variables to disk.
+#     save_path = saver.save(sess, "/tmp/model.ckpt")
+#     print "Model saved in file: ", save_path

@@ -22,6 +22,23 @@ def convert_lookup_to_hdf(fname):
 	data.to_hdf(fname + ".h5", "data")
 
 
+def sentences(data_name, sentence_name):
+	import pandas as pd
+	chunksize = 10
+	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=chunksize, usecols=[1], names=["text"])
+	chunk = tweets.get_chunk()
+	idx = 0
+	result = pd.DataFrame()
+	while chunk is not None:
+		print idx
+		df = chunk["text"].apply(lambda x: x.replace("WrappedArray(", "").replace(")", "").replace("null", "None").replace(",", ""))
+		result = result.append(df.values.tolist())
+		print result
+
+	result.to_csv(sentence_name)
+
+
+
 def data_sample_vector_id_2(data_name, vector_name):
 	import pandas as pd
 	chunksize = 100000
@@ -191,4 +208,7 @@ if __name__ == "__main__":
 	# show_cluster_tweets(cluster_id)
 
 	# show_cluster_homogenity()
-	input_cluster_topics()
+	# input_cluster_topics()
+
+	sentence_name = "/media/cluster/data1/lambert/sentences.csv"
+	sentences("/media/cluster/data1/data_jan_large.csv", sentence_name)

@@ -1,8 +1,6 @@
 from plotly.offline import init_notebook_mode, plot
-
 init_notebook_mode()
-from plotly.graph_objs import Scatter, Figure, Layout
-
+from plotly.graph_objs import Scatter, Figure, Layout, Pie
 
 
 
@@ -86,47 +84,11 @@ def plot_probs():
 	fig = Figure(data=data, layout=layout)
 	plot(fig)
 
-
-def plot_SGD():
-	from plotly.offline import init_notebook_mode, plot
-	init_notebook_mode()
-	from plotly.graph_objs import Scatter, Figure, Layout
-	f1_sgd = [0.74286917727785684, 0.74286917727785684, 0.74539960738080246,0.77816277951035595,  0.80745105723231581, 0.82994632441026861, 0.84891001205219097, 0.90301956605555778]
-	acc_sgd = []
-	f1_adagrad = [0.80878553458389768, 0.80878553458389768, 0.80951572774643576, 0.82469802830371741, 0.843997039135438, 0.85269550186683296, 0.8604455199174722, 0.8634267176886633 ]
-	acc_adagrad = [0.47614348, 0.47614348, 0.4774597, 0.4916091, ]
-	x = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 5]
-	f1_sgd_trace = Scatter(x=range(len(x)), y=f1_sgd, name="F1 score SGD")
-	acc_sgd_trace = Scatter(x=range(len(x)), y=acc_sgd, name="Accuracy SGD")
-	f1_adagrad_trace = Scatter(x=range(len(x)), y=f1_adagrad, name="F1 score ADAGRAD")
-	acc_adagrad_trace = Scatter(x=range(len(x)), y=acc_adagrad, name="Accuracy ADAGRAD")
-	# (precision and recall averaged) of 7 categories where tweets are selected using the category string
-	data = [acc_sgd_trace, acc_adagrad_trace, f1_sgd_trace, f1_adagrad_trace]
-
-	layout = Layout(title="F1 score and accuracy compared to Stochastic Gradient Descent and Adagrad learning rate",
-					xaxis=dict(title="learning rate", showticklabels=True, ticktext=[str(a) for a in x],
-							   tickvals=range(len(x))), yaxis=dict(title="F1-score or accuracy"))
-
-
-	fig = Figure(data=data, layout=layout)
-	plot(fig)
-
 def plot_class_sizes():
-	from plotly.offline import init_notebook_mode, plot
-	init_notebook_mode()
-	from plotly.graph_objs import Scatter, Figure, Layout, Pie
 	hashtags = ["voetbal", "moslim", "werk", "economie", "jihad", "seks", "politiek"]
-
-
-	dict = {}
-	import pandas as pd
-	all = pd.HDFStore("/media/cluster/data1/lambert/datasets/"+ hashtags[0] + ".h5")["data"]
-	for hashtag in hashtags[1:]:
-		print hashtag
-		dict[hashtag] = pd.HDFStore("/media/cluster/data1/lambert/datasets/"+ hashtag + ".h5")["data"]
-		all = all.append(dict[hashtag])
-		print len(all.index)
-	groups = all.groupby("labels").count().id.values.tolist()
+	import balance_categories
+	data = balance_categories.load_balanced_data()
+	groups = data.groupby("labels").count().id.values.tolist()
 	trace = Pie(labels=hashtags, values=groups, textinfo="label+value")
 	data = [trace]
 	layout = Layout( title="")
@@ -135,6 +97,121 @@ def plot_class_sizes():
 	print groups
 
 
+
+import pandas as pd
+def plot_w2v_loss():
+	data = pd.read_csv("/home/cluster/Dropbox/Master/results/model_lambert_w2v_loss.csv")
+	wordcount = data["wordcount"].values.tolist()
+	eta = data["eta"].values.tolist()
+	# print type(data["wordcount"][1])
+	# data["wordcount", "eta"] = data.apply(lambda row: eval(row))
+	trace = Scatter(x=wordcount, y=eta)
+	layout = Layout(title="N words versus learning rate", xaxis=dict(title="Wordcount"), yaxis=dict(title="Learning rate"))
+	fig = Figure(data=[trace], layout=layout)
+	plot(fig)
+
+
+
+def plot_loss(classifier):
+	from dataset import variables
+	traces = []
+	key = "loss"
+	for i, var in enumerate(variables):
+		data = pd.read_csv("/media/cluster/data1/lambert/results/"+ classifier + "_result_" + str(var))
+		traces.append(Scatter(x=range(len(data[key])), y=data[key], name=var,  line = dict(width = 1,color=colors[i]), marker= dict(opacity= 0.01),opacity= 0.3))
+		y = np.convolve(data[key], np.ones((50,)) / 50, mode="valid")
+		traces.append(Scatter(x=range(len(data[key])), y=y, name=var, showlegend=False, line=dict(width=1, color=colors[i])))
+	layout = Layout(title="Loss versus iterations for different "+ classifier.upper() + " learning rates", xaxis=dict(title="Iterations"), yaxis=dict(title="Loss (cross entropy)"))
+	fig = Figure(data=traces, layout=layout)
+	plot(fig)
+
+
+def plot_train_acc(classifier):
+	from dataset import variables
+	traces = []
+	key = "train_acc"
+	for i, var in enumerate(variables):
+		data = pd.read_csv("/media/cluster/data1/lambert/results/" + classifier + "_result_" + str(var))
+		traces.append(Scatter(x=range(len(data[key])), y=data[key], name=var,  line = dict(width = 1,color=colors[i]), marker= dict(opacity= 0.01),opacity= 0.3))
+		y = np.convolve(data[key], np.ones((50,)) / 50, mode="valid")
+		traces.append(Scatter(x=range(len(data[key])), y=y, name=var, showlegend=False, line=dict(width=1, color=colors[i])))
+	layout = Layout(title="Training accuracy versus iterations for different "+ classifier.upper() + " learning rates", xaxis=dict(title="Iterations"), yaxis=dict(title="Training accuracy"))
+	fig = Figure(data=traces, layout=layout)
+	plot(fig)
+
+def plot_test_acc(classifier):
+	from dataset import variables
+	traces = []
+	key = "test_acc"
+	for i, var in enumerate(variables):
+		data = pd.read_csv("/media/cluster/data1/lambert/results/" + classifier + "_result_" + str(var))
+		traces.append(Scatter(x=range(len(data[key])), y=data[key], name=var,  line = dict(width = 1,color=colors[i]), marker= dict(opacity= 0.01),opacity= 0.3))
+		y = np.convolve(data[key], np.ones((50,)) / 50, mode="valid")
+		traces.append(Scatter(x=range(len(data[key])), y=y, name=var, showlegend=False,line=dict(width=1, color=colors[i])))
+	layout = Layout(title="Test accuracy versus iterations for different "+ classifier.upper() + " learning rates", xaxis=dict(title="Iterations"), yaxis=dict(title="Test accuracy"))
+	fig = Figure(data=traces, layout=layout)
+	plot(fig)
+
+def plot_f1(classifier):
+	from dataset import variables
+	traces = []
+	key = "f1"
+	for i, var in enumerate(variables):
+		data = pd.read_csv("/media/cluster/data1/lambert/results/" + classifier + "_result_" + str(var))
+		traces.append(Scatter(x=range(len(data[key])), y=data[key], name=var,  line = dict(width = 1,color=colors[i]), marker= dict(opacity= 0.01),opacity= 0.3))
+		y = np.convolve(data[key], np.ones((50,)) / 50, mode="valid")
+		traces.append(Scatter(x=range(len(data[key])), y=y, name=var, showlegend=False, line=dict(width=1, color=colors[i])))
+	layout = Layout(title="F1 score versus iterations for different "+ classifier.upper() + " learning rates",
+					xaxis=dict(title="Iterations"), yaxis=dict(title="F1 score"))
+	fig = Figure(data=traces, layout=layout)
+	plot(fig)
+
+
+def plot_train_test():
+
+	trace_train = Scatter(x=range(len(train)), y=train)
+	trace_test = Scatter(x=range(len(test)), y=test)
+	fig = Figure(data=[trace_train, trace_test])
+	plot(fig)
+# plot_train_test()
+
+
+def plot_probs():
+	data = pd.read_csv("/media/cluster/data1/lambert/results/voetbal_moslim.csv", header=None, low_memory=False)
+	data = data.dropna()
+	data[2] = data[2].apply(lambda x: float(x))
+	data = data.sort(columns=[2])
+	print len(data.index)
+	old_data  = data
+	data = data[data[3].str.contains("voetbal")]
+	print len(data.index)
+	probs = data[2].dropna()
+	trace = Scatter(x=range(len(probs)), y=probs)
+	trace2 = Scatter(x=range(len(old_data[2].dropna())), y=old_data[2].dropna())
+	fig = Figure(data=[trace, trace2])
+	plot(fig)
+plot_probs()
 # plot_probs()
-plot_SGD()
+# plot_SGD()
 # plot_class_sizes()
+
+# plot_w2v_loss()
+# import sys
+# sys.exit(0)
+#
+#
+#
+# import time
+# import numpy as np
+# colors = ["blue", "green", "red", "cyan", "magenta", "yellow", "black", "purple", "brown", "lime", "steelblue", "chocolate", "orange"]
+# classifiers = ["ada", "sgd"]
+# for c in classifiers:
+# 	plot_loss(c)
+# 	time.sleep(2)
+# 	plot_train_acc(c)
+# 	time.sleep(2)
+# 	plot_test_acc(c)
+# 	time.sleep(2)
+# 	plot_f1(c)
+# 	time.sleep(2)
+# plot_train_acc("sgd")
