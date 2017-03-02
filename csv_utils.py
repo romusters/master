@@ -18,7 +18,7 @@ def dict_to_csv(dict, fname):
 def convert_lookup_to_hdf(fname):
 	import pandas as pd
 	data = pd.read_csv(fname, names=["words", "vectors"])
-	data["vectors"] = data["vectors"].apply(lambda x: eval(x))
+	data["vectors"] = data["vectors"].apply(lambda x: eval(x.replace("WrappedArray(", "[").replace(")", "]")))
 	data.to_hdf(fname + ".h5", "data")
 
 
@@ -57,6 +57,9 @@ def data_sample_vector_id_2(data_name, vector_name):
 		chunk = tweets.get_chunk()
 		idx+=1
 	store.close()
+
+
+
 
 def data_sample_vector_id(data_name, vector_name):
 	import pandas as pd
@@ -188,19 +191,21 @@ def input_cluster_topics_hopkins():
 
 if __name__ == "__main__":
 
-	data_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan.csv"
-	vector_name = "/media/cluster/data1/lambert/data_sample_vector_id"
+	data_name = "/media/cluster/data/lambert_w2v_data_jan_sample.csv"
+	vector_name = "/media/cluster/data/lambert/data_sample_vector_id"
 	# data_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan_all_columns.csv"
 	# vector_name = "/media/cluster/data1/lambert/data_sample_vector_id"
-	# data_sample_vector_id(data_name, vector_name)
+
+
 	# data_sample_vector_id_2(data_name, vector_name)
 
 	tweet_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan_tweet_id.csv"
 	# data_sample_tweet_id(data_name, tweet_name)
 	# data_sample_tokens_id(data_name)
 	# data_sample_tokens_id2(data_name)
-	model_name = "/media/cluster/data1/lambert/lambert_model.csv"
-	# convert_lookup_to_hdf(model_name)
+
+	model_name = "/media/cluster/data/lambert_jan_2015model.csv"
+	convert_lookup_to_hdf(model_name)
 
 	word = "vegan"
 	# cluster_id = find_subject_tweets(word)
@@ -211,4 +216,4 @@ if __name__ == "__main__":
 	# input_cluster_topics()
 
 	sentence_name = "/media/cluster/data1/lambert/sentences.csv"
-	sentences("/media/cluster/data1/data_jan_large.csv", sentence_name)
+	# sentences("/media/cluster/data1/data_jan_large.csv", sentence_name)

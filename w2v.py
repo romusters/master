@@ -191,7 +191,7 @@ def data_sample_vector_id():
 
 def test_model(fname):
 	data = pd.HDFStore(fname)["data"]
-	# word = "1"
+	word = "voetbal"
 	# word = "moslim"
 	words = data["words"].values.tolist()
 	print words[0]
@@ -273,8 +273,8 @@ def get_vocab():
 	store = pd.HDFStore("/media/cluster/data1/lambert/lambert_model.csv.h5")
 	vocab = store['data']["words"].values.tolist()
 	return vocab
-fname = "/media/cluster/data1/lambert/lambert_model.csv.h5"
-# test_model(fname)
+fname = "/media/cluster/data/lambert_model.h5"
+test_model(fname)
 
 tweet_name = "/media/cluster/data1/lambert/w2v_data_jan_tweet_id.csv"
 data_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan.csv.clean.h5"

@@ -105,42 +105,53 @@ def process(text):
 	tokens = text.split()
 	res = []
 	for token in tokens:
-		token = token.lower()
+		# token = token.lower()
 		token = token.strip()
 		if token not in ["<stopword>", "<mention>", "<url>", "rt"]:
-			if token[0:2] == "06" and len(token) == 10:
-				res.append("<mobiel>")
-			else:
-				parts = re.split('(\d+)', token)  # match(r"([a-z]+)([0-9]+)", token, re.I)
-				for part in parts:
-					if part != '':
-						res.append(part)
+			# if token[0:2] == "06" and len(token) == 10:
+			# 	res.append("<mobiel>")
+			# else:
+			# 	parts = re.split('(\d+)', token)  # match(r"([a-z]+)([0-9]+)", token, re.I)
+			# 	for part in parts:
+			# 		if part != '':
+			# 			res.append(part)
+			res.append(token)
 	return res
 
 def average_word_vectors2():
 	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
 	keys = lookup_bd.value.keys()
-	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
+	# data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
+	data = sqlContext.read.parquet("/user/rmusters/data_jan")#.sample(False, 0.0001)
+
 	data = data.dropna()
-	text = data.select("filtered_text", "id")
-	text = text.map(lambda (filtered_text, id): (filtered_text, process(filtered_text), id))
-	mean_vectors = text.map(lambda (filtered_text, processed, id): (filtered_text, processed, mean_slice([lookup_bd.value.get(w) for w in processed if w in keys and lookup_bd.value.get(w) is not None ]), id))
-	df = mean_vectors.toDF(["pre_processed", "tokens", "vectors", "id"])
-	result = df.select("tokens", "vectors", "id")
-	result.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
-	# data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<URL>"and w in keys] , id))
+	# text = data.select("filtered_text", "id")
+	# text = text.map(lambda (filtered_text, id): (filtered_text, process(filtered_text), id))
+	text = data.map(lambda (text, filtered_text, id): (text, filtered_text, process(filtered_text), id))
+	df = text.toDF(["text", "filtered_text", "tokens", "id"])
+	df.write.parquet("hdfs:///user/rmusters/processed", mode="overwrite")
+	df.write.format("com.databricks.spark.csv").mode("overwrite").save("processed.csv")
+	# # mean_vectors = text.map(lambda (filtered_text, processed, id): (filtered_text, processed, mean_slice([lookup_bd.value.get(w) for w in processed if w in keys and lookup_bd.value.get(w) is not None ]), id))
+	# mean_vectors = text.map(lambda (text, filtered_text, tokens, id): (text, filtered_text, tokens, mean_slice([lookup_bd.value.get(w) for w in tokens if w in keys and lookup_bd.value.get(w) is not None]), id))
+	# #
+	# # df = mean_vectors.toDF(["pre_processed", "tokens", "vectors", "id"])
+	# df = mean_vectors.toDF(["text", "filtered_text", "tokens", "vectors", "id"])
+	# # result = df.select("tokens", "vectors", "id")
+	# df.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
+	# df.write.format("com.databricks.spark.csv").mode("overwrite").save("lambert_w2v_data_jan.csv")
+	# # data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<URL>"and w in keys] , id))
 
 
 
-def average_word_vectors():
-	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
-	keys = lookup_bd.value.keys()
-	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
-	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<url>"and w in keys] , id))
-	data = data.map(lambda (text, filtered_text, split_text, id):  (text, filtered_text, split_text, mean_slice([lookup_bd.value.get(w) for w in split_text ]), id))
-	df = data.toDF(["text", "filtered_text", "split_text", "vectors", "id"])
-	df.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
-	df.select("text", "filtered_text", "vectors", "id").save("lambert_w2v_data_jan.csv", "com.databricks.spark.csv", "overwrite")
+# def average_word_vectors():
+# 	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
+# 	keys = lookup_bd.value.keys()
+# 	data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
+# 	data = data.map(lambda (text, filtered_text, id):  (text, filtered_text, [w for w in filtered_text.split() if not w == None and w != "<stopword>" and w != "<mention>" and w !="<url>"and w in keys] , id))
+# 	data = data.map(lambda (text, filtered_text, split_text, id):  (text, filtered_text, split_text, mean_slice([lookup_bd.value.get(w) for w in split_text ]), id))
+# 	df = data.toDF(["text", "filtered_text", "split_text", "vectors", "id"])
+# 	df.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
+# 	df.select("text", "filtered_text", "vectors", "id").save("lambert_w2v_data_jan.csv", "com.databricks.spark.csv", "overwrite")
 
 
 
@@ -205,17 +216,30 @@ def cos_similarity(tweet, other_tweet, model):
 		sims.append(tmp_cos_sim)
 	return float(sum(sims)/len(sims))
 
+def mean_vectors():
+	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
+	keys = lookup_bd.value.keys()
+	data = sqlContext.read.parquet("hdfs:///user/rmusters/processed").sample(False, 0.01)
+	data = data.select(["id", "tokens"])
+	df = data.map(lambda (id, tokens): (id, tokens, mean_slice([lookup_bd.value.get(w) for w in tokens if w in keys and lookup_bd.value.get(w) is not None]))).toDF(["id", "tokens", "vectors"])
+	df.write.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan", mode="overwrite")
+	df.write.format("com.databricks.spark.csv").mode("overwrite").save("lambert_w2v_data_jan.csv")
+
 if __name__ == "__main__":
-	path = '/user/rmusters/threshold20_2015model56'
-	#main()
-	#save_vectors(path)
-	#save_w2v_data()
-	average_word_vectors2()
-	vectors = sqlContext.read.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan")
-	vectors.write.format("com.databricks.spark.csv").mode("overwrite").save("lambert_w2v_data_jan.csv")
-	#train_w2v()
-	# lambert()
+	import numpy as np
+	# average_word_vectors2()
+	mean_vectors()
+# 	path = '/user/rmusters/threshold20_2015model56'
+# 	#main()
+# 	#save_vectors(path)
+# 	#save_w2v_data()
+# 	average_word_vectors2()
+# 	vectors = sqlContext.read.parquet("hdfs:///user/rmusters/lambert_w2v_data_jan")
+# 	vectors.write.format("com.databricks.spark.csv").mode("overwrite").save("lambert_w2v_data_jan.csv")
+# 	#train_w2v()
+# 	# lambert()
 
 
 #from pyspark.mllib.feature import Word2VecModel
 #model = Word2VecModel.load(sc,"word_vec_from_cleaned_query.model")
+

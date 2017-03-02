@@ -4,7 +4,7 @@ from pyspark.sql import SQLContext
 import logging, sys
 
 
-#spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --packages com.databricks:spark-csv_2.10:1.4.0 --master yarn --executor-memory 20g --deploy-mode cluster  master/hadoop/w2v.py
+#spark-submit --py-files master/hadoop/stemmer.py,master/hadoop/filter.py --packages com.databricks:spark-csv_2.10:1.4.0 --master yarn --executor-memory 20g --deploy-mode cluster  master/hadoop/lambert.py
 #if in yarn mode, all cores are used
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -48,33 +48,36 @@ def lambert():
 
 	# inp = data.map(lambda line: line.filtered_text.split())
 
-	# from pyspark.ml.feature import RegexTokenizer
-	# reTokenizer = RegexTokenizer(inputCol="filtered_text", outputCol="words")
-	# inp = reTokenizer.transform(data)
-	# inp.select("words").write.parquet("hdfs:///user/rmusters/data_jan_lowercase", mode="overwrite")
+	from pyspark.ml.feature import RegexTokenizer
+	reTokenizer = RegexTokenizer(inputCol="filtered_text", outputCol="words")
+	inp = reTokenizer.transform(data)
+	counts = data.flatMap(lambda line: line.filtered_text.split(" ")).map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b)
+	counts.toDF().write.format("com.databricks.spark.csv").mode("overwrite").save("counts.csv")
 
-	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_lowercase")
-	# inp = inp.map(lambda line: line[0])
+	inp.select("words").write.parquet("hdfs:///user/rmusters/data_jan_tokenizer", mode="overwrite")
 
-	import re
-	def split_number_string(tokens):
-		res = []
-		for token in tokens:
-			token = token.strip()
-			if token[0:2] == "06" and len(token) == 10:
-				res.append("<MOBIEL>")
-			else:
-				parts = re.split('(\d+)',token)#match(r"([a-z]+)([0-9]+)", token, re.I)
-				for part in parts:
-					if part != '':
-						res.append(part)
-					# if parts is None:
-				# 	res.append(token)
-				# else:
-				# 	res.extend(list(parts.groups()))
-		return res
-
-	inp = inp.map(lambda x: split_number_string(x[0]))
+	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_tokenizer")
+	inp = inp.map(lambda line: line[0])
+	#
+	# import re
+	# def split_number_string(tokens):
+	# 	res = []
+	# 	for token in tokens:
+	# 		token = token.strip()
+	# 		if token[0:2] == "06" and len(token) == 10:
+	# 			res.append("<MOBIEL>")
+	# 		else:
+	# 			parts = re.split('(\d+)',token)#match(r"([a-z]+)([0-9]+)", token, re.I)
+	# 			for part in parts:
+	# 				if part != '':
+	# 					res.append(part)
+	# 				# if parts is None:
+	# 			# 	res.append(token)
+	# 			# else:
+	# 			# 	res.extend(list(parts.groups()))
+	# 	return res
+	#
+	# inp = inp.map(lambda x: split_number_string(x[0]))
 
 	vector_size = 70
 	# vocab_size = vector_size / max_int_size
@@ -90,7 +93,7 @@ def lambert():
 	# word2vec.setMinCount(sample_frac * threshold)#40
 	word2vec.setVectorSize(vector_size)#/100
 
-	model_name = '/user/rmusters/lambert_jan_2015model'
+	model_name = '/user/rmusters/lambert_jan_2015model_tokenizer'
 	# for idx in range(1, 100, 1):
 	# 	print idx
 	# 	model = word2vec.fit(inp.sample(False, sample_frac))
@@ -132,6 +135,6 @@ def save_correct_text():
 	inp = inp.map(lambda x: (x,split_number_string(x[0])))
 	# geen id :( inp.toDF([""]).write.parquet("hdfs:///user/rmusters/data_jan_filtered")
 
-save_correct_text()
-# save_vectors('/user/rmusters/lambert_jan_2015model')
+# save_correct_text()
 # lambert()
+save_vectors("/user/rmusters/lambert_jan_2015model_tokenizer")

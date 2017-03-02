@@ -37,8 +37,11 @@ def save_data_sample(path):
 	data.write.parquet("hdfs:///user/rmusters/data_sample", mode="overwrite")
 
 def save_data_csv(path):
-	data = sqlContext.read.parquet(path).select("filtered_text")
-	data.save(path + ".txt", "com.databricks.spark.csv", "overwrite")
+	data = sqlContext.read.parquet(path)#.select("filtered_text")
+	data.save(path + ".csv", "com.databricks.spark.csv", "overwrite")
 
 path = 'hdfs:///user/rmusters/data_jan'
+# save_data_csv(path)
+data_jan()
+save_data_sample(path)
 save_data_csv(path)

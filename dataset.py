@@ -40,10 +40,58 @@ def load_all_data():
 
 
 
+def save_meta_subject(hashtag):
+	import pandas as pd
+	path = "/media/cluster/data1/lambert/results/" + hashtag
+	data = pd.read_csv(path + ".csv", low_memory=False)
+	data = data.dropna()
+	data["probs"] = data["probs"].apply(lambda x: float(x))
+	data = data.sort(columns=["probs"])
+	probs = data["probs"]
+	threshold = float(open(path, "r").readline())
+	print threshold
+	positive = data[data["probs"] >= threshold]
+	negative = data[data["probs"] < threshold]
+	print negative
+	positive.to_csv("/media/cluster/data1/lambert/datasets/meta_subjects/" + hashtag + "_meta", columns=["id", "text"])
+	return positive
+
+def load_meta_subject(hashtag):
+	data = pd.read_csv("/media/cluster/data1/lambert/datasets/meta_subjects/"+ hashtag + "_meta")
+	store = pd.HDFStore("/media/cluster/data1/lambert/data_sample_vector_id.clean.h5")
+	ids = data.id
+	pos_vectors = store.select("data", where=store["data"].id.isin(ids))
+	all_ids = store["data"]
+	neg_ids = all_ids[~all_ids.id.isin(ids)].id
+	neg_vectors = store.select("data", where=store["data"].id.isin(neg_ids))
+
+	pos_vectors["labels"] = 1
+	neg_vectors = neg_vectors.sample(n=len(pos_vectors.index))
+	neg_vectors["labels"] = 0
+	result = pos_vectors.append(neg_vectors).dropna()
+	return result
+
+def load_meta_subjects(hashtags):
+	print "load meta subjects"
+	store = pd.HDFStore("/media/cluster/data1/lambert/data_sample_vector_id.clean.h5")
+	result = pd.DataFrame()
+	for i, hashtag in enumerate(hashtags[0:-1]):
+		# load previous saved classes
+		data = pd.read_csv("/media/cluster/data1/lambert/datasets/meta_subjects/" + hashtag + "_meta")
+		pos_vectors = store.select("data", where=store["data"].id.isin(data.id))
+		pos_vectors["labels"] = i
+		result = result.append(pos_vectors)
+
+	positive = save_meta_subject(hashtags[-1])
+	positive["labels"] = len(hashtags)
+	result = result.append(positive)
+	print result
+	# balance datasets!!!!
+
 
 
 # create_subject_sets()
-import onehot
+# import onehot
 
 def nn():
 	import balance_categories

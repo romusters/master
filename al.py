@@ -179,10 +179,88 @@ def check_dims(embs):
 # 	# active_learning(seed_id, threshold)
 # 	# break
 
+
 '''
 Determine which tweet it still about voetbal
 '''
 def threshold_subject(hashtag):
+	import pandas as pd
+	data = pd.read_csv("/media/cluster/data1/lambert/results/" + hashtag + ".csv", header=None, low_memory=False)
+	data = data.dropna()
+	data[2] = data[2].apply(lambda x: float(x))
+	data = data.sort(columns=[2])
+	probs = data[2]
+	t = 0#(max(probs)-min(probs))/2
+	tmp = data[data[2] > t]
+	print tmp.head()[3].values
+	# if probs are large enough to be voetbal, lower t.
+
+
+	# assume the list is ordered from voetbal -2 to not voetbal +10 or sth.
+	while True:
+		tmp = data[data[2] > t]
+		print tmp.head()[3].values
+		flag = True
+		inp = int(input())
+		t = 0
+		while flag:
+			print t
+			if inp == 0:
+				print "not about the subject"
+				t +=1
+				tmp = data[data[2] > t]
+				print tmp.head()[3].values
+				inp = int(input())
+			if inp == 1:
+				print "about the subject!"
+				flag = False
+				prev_t = t-1
+		print "the threshold is %i" % t
+		print "the previous threshold was %i" % prev_t
+		high = t
+
+		low = prev_t
+		center = high-(high-low)/2.0
+
+		def test(high,low, center):
+			tmp = data[data[2] > center]
+			print tmp.head()[3].values
+			inp = int(input())
+			if inp == 1:
+				new_low = high-(high-center)/2.0
+				return high, new_low, high-(center-new_low)/2.0
+			elif inp == 0:
+				return center, low, center - (center - low)/2.0
+
+		while True:
+			high, low, center = test(high, low, center)
+			print high, low, center
+
+
+
+
+		while True:
+
+			if inp == 1:
+				t = t - ((t-prev_t) / 2.0)
+				print "the new threshold is %f" % t
+				tmp = data[data[2] > t]
+				print tmp.head()[3].values
+
+			elif inp == 0:
+				t = t + ((t-prev_t) / 2.0)
+				print "the new threshold is %f" % t
+				tmp = data[data[2] > t]
+				print tmp.head()[3].values
+			inp = int(input())
+
+
+		# if probs are too small, thus it is not about footbal, increase the probs until you found voetbal
+
+'''
+Determine which tweet it still about voetbal
+'''
+def threshold_subject_tmp(hashtag):
 	import pandas as pd
 	data = pd.read_csv("/media/cluster/data1/lambert/results/" + hashtag + ".csv", header=None, low_memory=False)
 	data = data.dropna()
@@ -200,6 +278,7 @@ def threshold_subject(hashtag):
 	first = 1
 	count = 0 # if too many annotations done, stop
 	prev_t = 100
+	prev_zero = 0
 	# assume the list is ordered from voetbal -2 to not voetbal +10 or sth.
 	while True:
 		flag = False
@@ -242,6 +321,7 @@ def threshold_subject(hashtag):
 					print tmp.head()[3].values
 					occ = occ + 1
 					t = t-math.pow(delta, occ)
+					prev_zero = False
 					print t
 
 					inp = int(input())
@@ -251,7 +331,9 @@ def threshold_subject(hashtag):
 					tmp = data[data[2] > t]
 					print tmp.head()[3].values
 					occ = occ + 1
-					t = t + math.pow(delta, occ)
+					if prev_zero:
+						t = t + math.pow(delta, occ) + 0.4 * prev_zero
+					prev_zero +=1
 					print t
 
 					inp = int(input())
@@ -259,6 +341,7 @@ def threshold_subject(hashtag):
 					print "too many iterations"
 					flag = 0
 				diff = abs(prev_t -t)
+				print "the difference between current and previous threshold is %i", diff
 				if  diff < 0.1: # if difference too small, stop
 					print "difference very small %i", prev_t - t
 					flag = 0
