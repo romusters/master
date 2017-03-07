@@ -25,6 +25,7 @@ sqlContext = SQLContext(sc)
 
 
 def lambert():
+
 	import sys
 	max_int_size = sys.maxint
 	print "maximum in integer: ", sys.maxint
@@ -53,7 +54,7 @@ def lambert():
 	inp = reTokenizer.transform(data)
 	counts = data.flatMap(lambda line: line.filtered_text.split(" ")).map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b)
 	counts.toDF().write.format("com.databricks.spark.csv").mode("overwrite").save("counts.csv")
-
+	print "Counts saved."
 	inp.select("words").write.parquet("hdfs:///user/rmusters/data_jan_tokenizer", mode="overwrite")
 
 	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_tokenizer")
@@ -85,7 +86,7 @@ def lambert():
 	# print "Vocabsize is: ", vocab_size
 
 
-
+	print "Start training word2vec."
 	word2vec = Word2Vec()
 	sample_frac = 0.01
 	threshold = 10
@@ -108,8 +109,10 @@ def lambert():
 
 
 def save_vectors(path):
+	print "Save vectors."
 	vectors = sqlContext.read.parquet(path + '/data')
-	vectors.save(path + ".csv", "com.databricks.spark.csv")
+	vectors.save(path + ".csv", "com.databricks.spark.csv", "overwrite")
+
 
 def save_correct_text():
 	inp = sqlContext.read.parquet("hdfs:///user/rmusters/data_jan_lowercase")

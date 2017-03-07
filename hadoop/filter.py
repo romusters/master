@@ -34,7 +34,11 @@ def mv_tags(tweet):
 		elif word[0:2] == "06" and len(word) == 10 and word.isdigit():
 			words[i] = "<mobiel>"
 		elif word.isdigit():
-				words[i] = word.strip().lstrip("0").strip() # remove leading zeros
+				if int(word) == 0:
+					words[i] = "0"
+				else:
+					words[i] = word.strip().lstrip("0").strip() # remove leading zeros
+				print words[i]
 		elif "@" in word:
 			words[i] = "<mention>"
 		elif word in stemming.stopwords:

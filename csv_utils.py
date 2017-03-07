@@ -42,7 +42,7 @@ def sentences(data_name, sentence_name):
 def data_sample_vector_id_2(data_name, vector_name):
 	import pandas as pd
 	chunksize = 100000
-	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=chunksize, usecols=[1,2], names=["vector", "id"])
+	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=chunksize, usecols=[2,3], names=["id", "vector"])
 	store = pd.HDFStore(vector_name + ".clean.h5")
 	chunk = tweets.get_chunk()
 	idx = 0
@@ -58,6 +58,28 @@ def data_sample_vector_id_2(data_name, vector_name):
 		idx+=1
 	store.close()
 
+
+
+def data_sample_vector_id_local(data_name, vector_name):
+	print data_name, vector_name
+	import pandas as pd
+	chunksize = 10000
+	tweets = pd.read_csv(data_name, iterator=True, index_col=False, chunksize=chunksize, usecols=["id", "vectors"])
+	store = pd.HDFStore(vector_name + ".clean.h5")
+	chunk = tweets.get_chunk()
+
+	idx = 0
+	while chunk is not None:
+		chunk = chunk.dropna()
+		vector = chunk["vectors"].apply(lambda x: [float(i) for i in x.replace("[", "").replace("]", "").split()])
+		vector = vector.apply(pd.Series, 1)
+		# vector = vector.to_frame()
+		vector["id"] = chunk["id"]
+		print vector
+		store.append("data", vector)
+		chunk = tweets.get_chunk()
+		idx+=1
+	store.close()
 
 
 
@@ -79,6 +101,8 @@ def data_sample_vector_id(data_name, vector_name):
 		chunk = tweets.get_chunk()
 		idx+=1
 	store.close()
+
+
 
 def data_sample_tokens_id2(data_name):
 	import pandas as pd
@@ -189,24 +213,52 @@ def input_cluster_topics_hopkins():
 		g.write(str(h) + "," + x + "\n")
 		g.close()
 
+
+def average_vectors():
+	import pandas as pd
+	import numpy as np
+	model = pd.read_hdf("/media/cluster/data/lambert_jan_2015model_tokenizer.csv.h5")
+	dictionary = dict(zip(model.words, model.vectors))
+
+	data = pd.read_csv("/media/cluster/data/data_sample.csv", header=None, names=["text", "filtered_text", "id"])
+	print len(data.index)
+	test = data.filtered_text.apply(lambda x: x.split())
+	vectors = []
+
+	# test = test.filter("<stopword>")
+	for i, tokens in enumerate(test):
+		if i %1000:
+			print i/1000
+		tmp_vector = []
+		for token in tokens:
+			if token not in ["<stopword>", "<url>", "rt", "<mention>"]:
+				try:
+					tmp_vector.append(dictionary[token])
+				except KeyError:
+					pass
+		vectors.append(np.mean(tmp_vector, axis=0))
+	data["vectors"] = vectors
+	data.to_csv("/media/cluster/data/data_sample_vector_id.csv")
+
+
 if __name__ == "__main__":
 
-	data_name = "/media/cluster/data/lambert_w2v_data_jan_sample.csv"
-	vector_name = "/media/cluster/data/lambert/data_sample_vector_id"
+	data_name = "/media/cluster/data/data_sample_vector_id.csv"
+	vector_name = "/media/cluster/data/data_sample_vector_id"
 	# data_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan_all_columns.csv"
 	# vector_name = "/media/cluster/data1/lambert/data_sample_vector_id"
 
 
-	# data_sample_vector_id_2(data_name, vector_name)
+	data_sample_vector_id_local(data_name, vector_name)
 
 	tweet_name = "/media/cluster/data1/lambert/lambert_w2v_data_jan_tweet_id.csv"
 	# data_sample_tweet_id(data_name, tweet_name)
 	# data_sample_tokens_id(data_name)
 	# data_sample_tokens_id2(data_name)
 
-	model_name = "/media/cluster/data/lambert_jan_2015model.csv"
-	convert_lookup_to_hdf(model_name)
-
+	model_name = "/media/cluster/data/lambert_jan_2015model_tokenizer.csv"
+	# convert_lookup_to_hdf(model_name)
+	# average_vectors()
 	word = "vegan"
 	# cluster_id = find_subject_tweets(word)
 	cluster_id = 224

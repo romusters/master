@@ -163,8 +163,9 @@ def data_sample_tweet_id():
 		chunk = tweets.get_chunk()
 
 
-def data_sample_vector_id():
+
 	import pandas as pd
+
 	data_name = "/media/cluster/data1/w2v_data_jan.csv"
 	chunksize = 1000
 	tweets = pd.read_csv(data_name, header=None, iterator=True, index_col=False, chunksize=chunksize, usecols=[2, 3], names=["vector", "id"])
@@ -192,7 +193,10 @@ def data_sample_vector_id():
 def test_model(fname):
 	data = pd.HDFStore(fname)["data"]
 	word = "voetbal"
-	# word = "moslim"
+	word = "moslim"
+	word = "1"
+	word="porno"
+	word="advertentie"
 	words = data["words"].values.tolist()
 	print words[0]
 	print word in words
@@ -202,7 +206,7 @@ def test_model(fname):
 	sims.to_csv(fname + ".sims")
 
 	sims.sort(ascending=False)
-	els = sims.head(10).keys()
+	els = sims.head(20).keys()
 
 	print els
 
@@ -273,7 +277,7 @@ def get_vocab():
 	store = pd.HDFStore("/media/cluster/data1/lambert/lambert_model.csv.h5")
 	vocab = store['data']["words"].values.tolist()
 	return vocab
-fname = "/media/cluster/data/lambert_model.h5"
+fname = "/media/cluster/data/lambert_jan_2015model_tokenizer.csv.h5"
 test_model(fname)
 
 tweet_name = "/media/cluster/data1/lambert/w2v_data_jan_tweet_id.csv"

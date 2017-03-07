@@ -41,7 +41,7 @@ def read_data(filename):
   return data
 
 words = read_data(filename)
-print(words)
+# print(words)
 print('Data size', len(words))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.

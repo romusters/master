@@ -119,6 +119,7 @@ def process(text):
 	return res
 
 def average_word_vectors2():
+	print "average vectors 2"
 	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
 	keys = lookup_bd.value.keys()
 	# data = sqlContext.read.parquet("/user/rmusters/data_jan_sample")
@@ -217,7 +218,8 @@ def cos_similarity(tweet, other_tweet, model):
 	return float(sum(sims)/len(sims))
 
 def mean_vectors():
-	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model')
+	print "mean vectors"
+	lookup_bd = load_model('/user/rmusters/lambert_jan_2015model_tokenizer')
 	keys = lookup_bd.value.keys()
 	data = sqlContext.read.parquet("hdfs:///user/rmusters/processed").sample(False, 0.01)
 	data = data.select(["id", "tokens"])
